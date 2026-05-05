@@ -1,0 +1,10 @@
+// SPDX-License-Identifier: Apache-2.0
+// Application: RateLimiter
+import "traffic/RateLimiter.clnp";
+import "core/Pass.clnp";
+
+RateLimiter :: rl @
+Pass        :: rev
+
+tor_in -> rl -> nic_out
+nic_in -> rev -> tor_out

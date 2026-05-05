@@ -1,0 +1,13 @@
+// SPDX-License-Identifier: Apache-2.0
+// Application: PortScanDetect
+import "parsers/FlowTupleParser.clnp";
+import "networking/PortScanDetect.clnp";
+import "core/Pass.clnp";
+
+FlowTupleParser :: parse
+PortScanDetect  :: psd @
+Pass            :: rev
+
+tor_in -> parse[1] -> psd -> nic_out
+parse[2] -> Drop
+nic_in -> rev -> tor_out

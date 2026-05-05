@@ -1,0 +1,2 @@
+add_executable(roce_gw_host host.cpp)
+target_link_libraries(roce_gw_host PRIVATE openclicknp_runtime)

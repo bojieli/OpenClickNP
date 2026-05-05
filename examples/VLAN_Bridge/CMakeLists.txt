@@ -1,0 +1,2 @@
+add_executable(vlan_bridge_host host.cpp)
+target_link_libraries(vlan_bridge_host PRIVATE openclicknp_runtime)

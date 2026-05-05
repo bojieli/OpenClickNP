@@ -1,0 +1,2 @@
+add_executable(nvgre_encap_host host.cpp)
+target_link_libraries(nvgre_encap_host PRIVATE openclicknp_runtime)

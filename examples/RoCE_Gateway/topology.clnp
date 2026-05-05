@@ -1,0 +1,13 @@
+// SPDX-License-Identifier: Apache-2.0
+// Application: RoCE_Gateway
+import "parsers/RoCE_Classifier.clnp";
+import "actions/NVGRE_Encap.clnp";
+import "core/Pass.clnp";
+
+RoCE_Classifier :: rcls
+NVGRE_Encap     :: encap @
+Pass            :: rev
+
+nic_in -> rcls[1] -> encap -> tor_out
+rcls[2] -> Drop
+tor_in -> rev -> nic_out

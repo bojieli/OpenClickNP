@@ -1,0 +1,2 @@
+add_executable(passtraffic_host host.cpp)
+target_link_libraries(passtraffic_host PRIVATE openclicknp_runtime)

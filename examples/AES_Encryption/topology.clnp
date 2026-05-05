@@ -1,0 +1,10 @@
+// SPDX-License-Identifier: Apache-2.0
+// Application: AES_Encryption
+import "crypto/AES_CTR.clnp";
+import "core/Pass.clnp";
+
+AES_CTR :: aes @
+Pass    :: rev
+
+tor_in -> aes -> nic_out
+nic_in -> rev -> tor_out

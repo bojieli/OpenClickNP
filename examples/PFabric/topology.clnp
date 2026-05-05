@@ -1,0 +1,10 @@
+// SPDX-License-Identifier: Apache-2.0
+// Application: PFabric
+import "queues/PriorityQueue.clnp";
+import "core/Pass.clnp";
+
+PriorityQueue :: pq
+Pass          :: rev
+
+tor_in -> pq -> nic_out
+nic_in -> rev -> tor_out

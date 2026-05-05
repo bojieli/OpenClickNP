@@ -1,0 +1,18 @@
+// SPDX-License-Identifier: Apache-2.0
+// L4 Load Balancer:
+//   Parse 5-tuple → hash to a backend slot → lookup nexthop → rewrite DIP.
+import "parsers/FlowTupleParser.clnp";
+import "networking/L4LoadBalancer.clnp";
+import "lookups/HashTable.clnp";
+import "actions/PacketSetDIP.clnp";
+import "core/Pass.clnp";
+
+FlowTupleParser :: parse
+HashTable       :: ht @
+L4LoadBalancer  :: lb @
+PacketSetDIP    :: setdip @
+Pass            :: rev
+
+nic_in -> parse[1] -> [1]ht -> lb -> setdip -> tor_out
+parse[2] -> Drop
+tor_in -> rev -> nic_out

@@ -1,0 +1,2 @@
+add_executable(pktlog_host host.cpp)
+target_link_libraries(pktlog_host PRIVATE openclicknp_runtime)

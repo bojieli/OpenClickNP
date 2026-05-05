@@ -1,0 +1,20 @@
+// SPDX-License-Identifier: Apache-2.0
+// NVGRE encap pipeline: parse the inner packet's customer address, look it
+// up to find a tenant (VNI), encap with NVGRE header, ship out.
+import "parsers/FlowTupleParser.clnp";
+import "lookups/HashTable.clnp";
+import "actions/NVGRE_Encap.clnp";
+import "actions/IPChecksum.clnp";
+import "core/Tee.clnp";
+import "core/Pass.clnp";
+
+FlowTupleParser :: parse
+HashTable       :: vni_table @
+NVGRE_Encap     :: encap @
+IPChecksum      :: csum
+Pass            :: rev
+
+nic_in -> parse[1] -> [1]vni_table -> encap -> csum[1] -> tor_out
+csum[2] -> Drop
+parse[2] -> Drop
+tor_in -> rev -> nic_out

@@ -1,0 +1,10 @@
+// SPDX-License-Identifier: Apache-2.0
+// Application: PacketLogger
+import "networking/PktLogger.clnp";
+import "core/Pass.clnp";
+
+PktLogger :: log @
+Pass      :: rev
+
+tor_in -> log -> nic_out
+nic_in -> rev -> tor_out

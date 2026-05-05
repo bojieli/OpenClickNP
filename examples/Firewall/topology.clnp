@@ -1,0 +1,72 @@
+// SPDX-License-Identifier: Apache-2.0
+//
+// Firewall — 5-tuple-keyed packet filter.
+//
+//   nic_in -> Tee --(packet flits)-> [1]LookupAct -> tor_out
+//                \-(metadata)-> FlowTupleParser -> [2]HashTable -> [2]LookupAct
+//
+// LookupAct waits for matching metadata + flits, drops the packet if the
+// hashtable said "miss" or returns a "block" action. Rule installation is
+// via the host signal RPC on `ht`.
+//
+// Reverse direction is a simple Pass.
+
+import "core/Pass.clnp";
+import "core/Tee.clnp";
+import "core/Counter.clnp";
+import "parsers/FlowTupleParser.clnp";
+import "lookups/HashTable.clnp";
+
+.element LookupAct <2, 1> {
+    // Joins flit stream (port 1) with metadata-result stream (port 2).
+    // Metadata flit's lane 1 == 0 means "miss" → drop the entire packet.
+    .state {
+        bool   has_decision;
+        bool   pass_pkt;
+        uint64_t passed_pkts;
+        uint64_t dropped_pkts;
+    }
+    .init {
+        _state.has_decision = false;
+        _state.pass_pkt     = false;
+        _state.passed_pkts  = _state.dropped_pkts = 0;
+    }
+    .handler {
+        // Pull a decision when a metadata flit is ready.
+        if (test_input_port(PORT_2)) {
+            openclicknp::flit_t m = read_input_port(PORT_2);
+            _state.has_decision = true;
+            _state.pass_pkt     = (m.get(1) != 0);
+        }
+        if (_state.has_decision && test_input_port(PORT_1)) {
+            openclicknp::flit_t f = read_input_port(PORT_1);
+            if (_state.pass_pkt) {
+                set_output_port(1, f);
+                if (f.eop()) { _state.passed_pkts++; _state.has_decision = false; }
+            } else {
+                if (f.eop()) { _state.dropped_pkts++; _state.has_decision = false; }
+            }
+        }
+        return openclicknp::PORT_ALL;
+    }
+    .signal (uint cmd, uint p) {
+        outevent.lparam[0] = _state.passed_pkts;
+        outevent.lparam[1] = _state.dropped_pkts;
+    }
+}
+
+Tee              :: split (1, 2)
+FlowTupleParser  :: parser
+HashTable        :: ht @
+LookupAct        :: act @ (2, 1)
+Pass             :: rev @
+
+nic_in -> split
+split[1] -> [1]act
+split[2] -> parser
+parser[2] -> [1]ht
+parser[1] => Drop        // metadata path's flit dup is dropped
+ht -> [2]act
+act -> tor_out
+
+tor_in -> rev -> nic_out

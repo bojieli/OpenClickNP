@@ -1,0 +1,2 @@
+add_executable(portscan_host host.cpp)
+target_link_libraries(portscan_host PRIVATE openclicknp_runtime)

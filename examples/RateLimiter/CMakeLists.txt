@@ -1,0 +1,2 @@
+add_executable(ratelimiter_host host.cpp)
+target_link_libraries(ratelimiter_host PRIVATE openclicknp_runtime)

@@ -1,0 +1,13 @@
+// SPDX-License-Identifier: Apache-2.0
+// Application: IP_Forwarding
+import "parsers/IP_Parser.clnp";
+import "lookups/LPM_Tree.clnp";
+import "core/Pass.clnp";
+
+IP_Parser :: parse
+LPM_Tree  :: fib @
+Pass      :: rev
+
+tor_in -> parse[1] -> fib -> nic_out
+parse[2] -> Drop
+nic_in -> rev -> tor_out

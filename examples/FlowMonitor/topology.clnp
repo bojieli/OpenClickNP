@@ -1,0 +1,13 @@
+// SPDX-License-Identifier: Apache-2.0
+// Application: FlowMonitor
+import "parsers/FlowTupleParser.clnp";
+import "lookups/FlowCounter.clnp";
+import "core/Pass.clnp";
+
+FlowTupleParser :: parse
+FlowCounter     :: cnt @
+Pass            :: rev
+
+tor_in -> parse[1] -> cnt -> nic_out
+parse[2] -> Drop
+nic_in -> rev -> tor_out

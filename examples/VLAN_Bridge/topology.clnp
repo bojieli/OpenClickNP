@@ -1,0 +1,13 @@
+// SPDX-License-Identifier: Apache-2.0
+// Application: VLAN_Bridge
+import "parsers/VLAN_Parser.clnp";
+import "lookups/HashTable.clnp";
+import "core/Pass.clnp";
+
+VLAN_Parser :: parse
+HashTable   :: bridge_tbl @
+Pass        :: rev
+
+tor_in -> parse[1] -> [1]bridge_tbl -> nic_out
+parse[2] -> Drop
+nic_in -> rev -> tor_out

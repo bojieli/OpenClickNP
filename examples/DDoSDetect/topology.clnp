@@ -1,0 +1,19 @@
+// SPDX-License-Identifier: Apache-2.0
+// Application: DDoSDetect
+import "parsers/FlowTupleParser.clnp";
+import "lookups/FlowCounter.clnp";
+import "networking/PortScanDetect.clnp";
+import "core/Tee.clnp";
+import "core/Pass.clnp";
+
+FlowTupleParser :: parse
+FlowCounter     :: cnt @
+PortScanDetect  :: psd @
+Tee             :: tee
+Pass            :: rev
+
+tor_in -> parse[1] -> tee
+tee[1] -> cnt -> nic_out
+tee[2] -> psd -> Drop
+parse[2] -> Drop
+nic_in -> rev -> tor_out

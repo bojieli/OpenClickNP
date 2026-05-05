@@ -1,0 +1,10 @@
+// SPDX-License-Identifier: Apache-2.0
+// Application: PacketCapture
+import "core/Capture.clnp";
+import "core/Pass.clnp";
+
+Capture :: cap @
+Pass    :: rev
+
+tor_in -> cap -> nic_out
+nic_in -> rev -> tor_out

@@ -1,0 +1,18 @@
+// SPDX-License-Identifier: Apache-2.0
+//
+// PassTraffic — the smallest meaningful demo.
+//
+// Traffic on the ToR-side QSFP28 is passed through a Pass element (which
+// counts flits and packets) and out the NIC-side QSFP28. Symmetric in the
+// other direction.
+//
+// Use this to validate the toolchain end-to-end: compile, simulate, and
+// run on real hardware.
+
+import "core/Pass.clnp";
+
+Pass :: tor_rx_cnt @
+Pass :: nic_rx_cnt @
+
+tor_in -> tor_rx_cnt -> nic_out
+nic_in -> nic_rx_cnt -> tor_out

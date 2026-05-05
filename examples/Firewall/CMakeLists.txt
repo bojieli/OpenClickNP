@@ -1,0 +1,2 @@
+add_executable(firewall_host host.cpp)
+target_link_libraries(firewall_host PRIVATE openclicknp_runtime)
