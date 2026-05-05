@@ -1,0 +1,19 @@
+// SPDX-License-Identifier: Apache-2.0
+// Auto-generated bulk element stub for OpenClickNP.
+.element AES_Merge <4, 1> {
+    .state {uint8_t rr;}
+    .init {_state.rr = 0;}
+    .handler {
+        for (uint8_t off = 0; off < 4; ++off) {
+            uint8_t p = (_state.rr + off) % 4 + 1;
+            openclicknp::port_mask_t m = openclicknp::PORT_BIT(p);
+            if (_input_port & m) {
+                set_output_port(1, _input_data[p]);
+                clear_input_ready(m);
+                _state.rr = p % 4;
+                break;
+            }
+        }
+        return openclicknp::PORT_ALL;
+}
+}

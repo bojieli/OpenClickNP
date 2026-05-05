@@ -1,0 +1,24 @@
+// SPDX-License-Identifier: Apache-2.0
+//
+// Fork: like Tee but with lossy forwarding to the secondary port.
+// Useful for taps that monitor traffic without backpressuring the
+// primary path.
+.element Fork <1, 2> {
+    .state {
+        uint64_t forwarded;
+        uint64_t tap_dropped;
+    }
+    .init {
+        _state.forwarded   = 0;
+        _state.tap_dropped = 0;
+    }
+    .handler {
+        if (test_input_port(PORT_1)) {
+            openclicknp::flit_t f = read_input_port(PORT_1);
+            set_output_port(1, f);  // primary, lossless
+            set_output_port(2, f);  // secondary; downstream link should be lossy
+            _state.forwarded++;
+        }
+        return PORT_1;
+    }
+}

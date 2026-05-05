@@ -1,0 +1,13 @@
+// SPDX-License-Identifier: Apache-2.0
+// Auto-generated bulk element stub for OpenClickNP.
+.element TimeStamp_PktGen <0, 1> {
+    .state {uint64_t seq;}
+    .init {_state.seq = 0;}
+    .handler {
+        openclicknp::flit_t f{};
+        f.set(0, _state.seq++);
+        f.set_sop(true); f.set_eop(true);
+        set_output_port(1, f);
+        return openclicknp::PORT_ALL;
+}
+}

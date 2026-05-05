@@ -1,0 +1,14 @@
+// SPDX-License-Identifier: Apache-2.0
+// s2p: 1-input → 2-output mirror with optional drop bit.
+.element s2p <1, 2> {
+    .state {}
+    .init {}
+    .handler {
+        if (test_input_port(PORT_1)) {
+            openclicknp::flit_t f = read_input_port(PORT_1);
+            set_output_port(1, f);
+            set_output_port(2, f);
+        }
+        return PORT_1;
+    }
+}

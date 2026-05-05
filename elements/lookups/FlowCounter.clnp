@@ -1,0 +1,25 @@
+// SPDX-License-Identifier: Apache-2.0
+// Auto-generated bulk element stub for OpenClickNP.
+.element FlowCounter <1, 1> {
+    .state {
+        constexpr uint32_t SIZE = 1024;
+        uint64_t key[SIZE];
+        uint64_t cnt[SIZE];
+        bool valid[SIZE];
+}
+    .init {for (uint32_t i = 0; i < _state.SIZE; ++i) _state.valid[i] = false;}
+    .handler {
+        if (test_input_port(PORT_1)) {
+            openclicknp::flit_t f = read_input_port(PORT_1);
+            uint64_t k = f.get(0);
+            uint32_t h = static_cast<uint32_t>(k) & (_state.SIZE - 1);
+            if (_state.valid[h] && _state.key[h] == k) _state.cnt[h]++;
+            else { _state.key[h] = k; _state.cnt[h] = 1; _state.valid[h] = true; }
+            f.set(3, _state.cnt[h]);
+            set_output_port(1, f);
+        }
+        return PORT_1;
+}
+    .signal (uint cmd, uint p) {outevent.lparam[0] = _state.SIZE;}
+
+}

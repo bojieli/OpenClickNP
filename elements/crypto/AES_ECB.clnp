@@ -1,0 +1,15 @@
+// SPDX-License-Identifier: Apache-2.0
+// Auto-generated bulk element stub for OpenClickNP.
+.element AES_ECB <1, 1> {
+    .state {uint64_t k0, k1;}
+    .init {_state.k0 = 0xC0FFEEC0FFEEull; _state.k1 = 0xBADBADBADull;}
+    .handler {
+        if (test_input_port(PORT_1)) {
+            openclicknp::flit_t f = read_input_port(PORT_1);
+            f.set(0, f.get(0) ^ _state.k0);
+            f.set(1, f.get(1) ^ _state.k1);
+            set_output_port(1, f);
+        }
+        return PORT_1;
+}
+}

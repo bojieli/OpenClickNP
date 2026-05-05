@@ -1,0 +1,39 @@
+// SPDX-License-Identifier: Apache-2.0
+// MultiFIFO: bank of N parallel FIFOs sharing one input/output, selected
+// by lane 0 of incoming flit (slot index). Useful for per-flow buffering.
+.element MultiFIFO <1, 1> {
+    .state {
+        constexpr uint32_t SLOTS = 16;
+        constexpr uint32_t DEPTH = 32;
+        openclicknp::flit_t buf[SLOTS][DEPTH];
+        uint32_t head[SLOTS], tail[SLOTS];
+        uint32_t pending;
+    }
+    .init {
+        for (uint32_t i = 0; i < _state.SLOTS; ++i) { _state.head[i] = _state.tail[i] = 0; }
+        _state.pending = 0;
+    }
+    .handler {
+        // Accept input
+        if (test_input_port(PORT_1)) {
+            openclicknp::flit_t f = read_input_port(PORT_1);
+            uint32_t s = static_cast<uint32_t>(f.get(0)) % _state.SLOTS;
+            uint32_t nxt = (_state.head[s] + 1) % _state.DEPTH;
+            if (nxt != _state.tail[s]) {
+                _state.buf[s][_state.head[s]] = f;
+                _state.head[s] = nxt;
+            }
+        }
+        // Drain round-robin
+        for (uint32_t i = 0; i < _state.SLOTS; ++i) {
+            uint32_t s = (_state.pending + i) % _state.SLOTS;
+            if (_state.head[s] != _state.tail[s]) {
+                set_output_port(1, _state.buf[s][_state.tail[s]]);
+                _state.tail[s] = (_state.tail[s] + 1) % _state.DEPTH;
+                _state.pending = (s + 1) % _state.SLOTS;
+                break;
+            }
+        }
+        return PORT_1;
+    }
+}

@@ -1,0 +1,17 @@
+// SPDX-License-Identifier: Apache-2.0
+//
+// Tee: duplicate input flit to two outputs. Both outputs must accept before
+// the input is consumed (lossless). With both outputs accepting, this runs
+// at line rate.
+.element Tee <1, 2> {
+    .state {}
+    .init {}
+    .handler {
+        if (test_input_port(PORT_1)) {
+            openclicknp::flit_t f = read_input_port(PORT_1);
+            set_output_port(1, f);
+            set_output_port(2, f);
+        }
+        return PORT_1;
+    }
+}

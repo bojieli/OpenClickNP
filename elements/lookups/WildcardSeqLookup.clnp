@@ -1,0 +1,26 @@
+// SPDX-License-Identifier: Apache-2.0
+// Auto-generated bulk element stub for OpenClickNP.
+.element WildcardSeqLookup <1, 1> {
+    .state {
+        constexpr uint32_t E = 32;
+        uint64_t lo[E], hi[E];
+        uint64_t v[E];
+        bool valid[E];
+}
+    .init {for (uint32_t i = 0; i < _state.E; ++i) _state.valid[i] = false;}
+    .handler {
+        if (test_input_port(PORT_1)) {
+            openclicknp::flit_t f = read_input_port(PORT_1);
+            uint64_t k = f.get(0);
+            for (uint32_t i = 0; i < _state.E; ++i)
+                if (_state.valid[i] && k >= _state.lo[i] && k <= _state.hi[i]) { f.set(2, _state.v[i]); break; }
+            set_output_port(1, f);
+        }
+        return PORT_1;
+}
+    .signal (uint cmd, uint idx) {
+        uint32_t i = event.sparam % _state.E;
+        if (event.cmd == 1) { _state.lo[i] = event.lparam[0]; _state.hi[i] = event.lparam[1]; _state.v[i] = event.lparam[2]; _state.valid[i] = true; }
+}
+
+}

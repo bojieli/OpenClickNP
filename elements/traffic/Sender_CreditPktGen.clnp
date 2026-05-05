@@ -1,0 +1,16 @@
+// SPDX-License-Identifier: Apache-2.0
+// Auto-generated bulk element stub for OpenClickNP.
+.element Sender_CreditPktGen <0, 1> {
+    .state {uint64_t seq; uint32_t credits;}
+    .init {_state.seq = 0; _state.credits = 32;}
+    .handler {
+        if (_state.credits > 0) {
+            openclicknp::flit_t f{};
+            f.set(0, _state.seq++);
+            f.set_sop(true); f.set_eop(true);
+            set_output_port(1, f);
+            _state.credits--;
+        }
+        return openclicknp::PORT_ALL;
+}
+}

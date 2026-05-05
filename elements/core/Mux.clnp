@@ -1,0 +1,31 @@
+// SPDX-License-Identifier: Apache-2.0
+//
+// Mux: N-input round-robin merger. Forwards one flit per cycle from
+// whichever input has data, advancing the round-robin pointer fairly.
+// Default is 2 inputs; users override with explicit port count.
+.element Mux <2, 1> {
+    .state {
+        uint8_t  rr;          // last serviced port (1..NUM_INPORT)
+        uint64_t merged;
+    }
+    .init {
+        _state.rr     = 0;
+        _state.merged = 0;
+    }
+    .handler {
+        // Pick next ready port starting from rr+1.
+        for (uint8_t off = 1; off <= 8; ++off) {
+            uint8_t p = static_cast<uint8_t>((_state.rr + off - 1) % 8 + 1);
+            openclicknp::port_mask_t mask = openclicknp::PORT_BIT(p);
+            if ((_input_port & mask) != 0) {
+                openclicknp::flit_t f = _input_data[p];
+                clear_input_ready(mask);
+                set_output_port(1, f);
+                _state.rr = p;
+                _state.merged++;
+                break;
+            }
+        }
+        return openclicknp::PORT_ALL;
+    }
+}

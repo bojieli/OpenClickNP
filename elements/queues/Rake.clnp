@@ -1,0 +1,24 @@
+// SPDX-License-Identifier: Apache-2.0
+// Auto-generated bulk element stub for OpenClickNP.
+.element Rake <1, 1> {
+    .state {
+        constexpr uint32_t SLOTS = 16;
+        openclicknp::flit_t buf[SLOTS];
+        uint32_t valid_mask;
+}
+    .init {_state.valid_mask = 0;}
+    .handler {
+        if (test_input_port(PORT_1)) {
+            openclicknp::flit_t f = read_input_port(PORT_1);
+            uint32_t s = static_cast<uint32_t>(f.get(0)) % _state.SLOTS;
+            _state.buf[s] = f;
+            _state.valid_mask |= (1u << s);
+        }
+        if (_state.valid_mask) {
+            uint32_t s = static_cast<uint32_t>(__builtin_ctz(_state.valid_mask));
+            set_output_port(1, _state.buf[s]);
+            _state.valid_mask &= ~(1u << s);
+        }
+        return PORT_1;
+}
+}

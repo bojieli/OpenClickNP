@@ -1,0 +1,21 @@
+// SPDX-License-Identifier: Apache-2.0
+// Auto-generated bulk element stub for OpenClickNP.
+.element ChannelShaping <1, 1> {
+    .state {
+        uint32_t budget;
+        uint32_t period;
+        uint32_t period_max;
+}
+    .init {_state.budget = 64; _state.period = 0; _state.period_max = 100;}
+    .handler {
+        if (++_state.period >= _state.period_max) {
+            _state.period = 0;
+            _state.budget = 64;
+        }
+        if (_state.budget > 0 && test_input_port(PORT_1)) {
+            set_output_port(1, read_input_port(PORT_1));
+            _state.budget--;
+        }
+        return PORT_1;
+}
+}

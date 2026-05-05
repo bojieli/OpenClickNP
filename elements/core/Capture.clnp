@@ -1,0 +1,35 @@
+// SPDX-License-Identifier: Apache-2.0
+// Capture: store the most recent N flits in a circular buffer; expose via
+// signal RPC for offline inspection (host downloads them flit by flit).
+.element Capture <1, 1> {
+    .state {
+        constexpr uint32_t CAP = 256;
+        openclicknp::flit_t buf[CAP];
+        uint32_t head;
+        uint64_t total;
+    }
+    .init {
+        _state.head = 0;
+        _state.total = 0;
+    }
+    .handler {
+        if (test_input_port(PORT_1)) {
+            openclicknp::flit_t f = read_input_port(PORT_1);
+            _state.buf[_state.head] = f;
+            _state.head = (_state.head + 1) % _state.CAP;
+            _state.total++;
+            set_output_port(1, f);
+        }
+        return PORT_1;
+    }
+    .signal (uint cmd, uint idx) {
+        // cmd 1: read flit at sparam, return raw[0..2] in lparam[0..2]
+        outevent.lparam[0] = _state.total;
+        if (event.cmd == 1 && event.sparam < _state.CAP) {
+            outevent.lparam[1] = _state.buf[event.sparam].get(0);
+            outevent.lparam[2] = _state.buf[event.sparam].get(1);
+            outevent.lparam[3] = _state.buf[event.sparam].get(2);
+            outevent.lparam[4] = _state.buf[event.sparam].get(3);
+        }
+    }
+}

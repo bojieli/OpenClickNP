@@ -1,0 +1,10 @@
+// SPDX-License-Identifier: Apache-2.0
+//
+// Idle: never produces. Useful as a placeholder for unused boundary ports.
+.element Idle <0, 1> {
+    .state {}
+    .init {}
+    .handler {
+        return openclicknp::PORT_ALL;
+    }
+}

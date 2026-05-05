@@ -1,0 +1,18 @@
+// SPDX-License-Identifier: Apache-2.0
+// Auto-generated bulk element stub for OpenClickNP.
+.element GmemTableRead <1, 1> {
+    .state {
+        constexpr uint32_t SIZE = 4096;
+        uint64_t mem[SIZE];
+}
+    .init {for (uint32_t i = 0; i < _state.SIZE; ++i) _state.mem[i] = 0;}
+    .handler {
+        if (test_input_port(PORT_1)) {
+            openclicknp::flit_t f = read_input_port(PORT_1);
+            uint32_t a = static_cast<uint32_t>(f.get(0)) & (_state.SIZE - 1);
+            f.set(2, _state.mem[a]);
+            set_output_port(1, f);
+        }
+        return PORT_1;
+}
+}

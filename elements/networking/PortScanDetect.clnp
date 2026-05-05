@@ -1,0 +1,27 @@
+// SPDX-License-Identifier: Apache-2.0
+// Auto-generated bulk element stub for OpenClickNP.
+.element PortScanDetect <1, 1> {
+    .state {
+        constexpr uint32_t HOSTS = 256;
+        uint32_t port_set[HOSTS];   // bitmap of recently-seen ports per host
+        uint32_t alerts;
+}
+    .init {for (uint32_t i = 0; i < _state.HOSTS; ++i) _state.port_set[i] = 0; _state.alerts = 0;}
+    .handler {
+        if (test_input_port(PORT_1)) {
+            openclicknp::flit_t f = read_input_port(PORT_1);
+            uint32_t src = static_cast<uint32_t>(f.get(0) >> 32) & (_state.HOSTS - 1);
+            uint32_t dst_port = static_cast<uint32_t>(f.get(0) & 0xFFFFu);
+            uint32_t bit = dst_port & 31u;
+            uint32_t prev = _state.port_set[src];
+            _state.port_set[src] |= (1u << bit);
+            if (__builtin_popcount(_state.port_set[src]) >= 16 && __builtin_popcount(prev) < 16) {
+                _state.alerts++;
+            }
+            set_output_port(1, f);
+        }
+        return PORT_1;
+}
+    .signal (uint cmd, uint p) {outevent.lparam[0] = _state.alerts;}
+
+}

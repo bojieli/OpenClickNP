@@ -1,0 +1,18 @@
+// SPDX-License-Identifier: Apache-2.0
+// Auto-generated bulk element stub for OpenClickNP.
+.element RevParser <1, 1> {
+    .state {}
+    .init {}
+    .handler {
+        if (test_input_port(PORT_1)) {
+            openclicknp::flit_t f = read_input_port(PORT_1);
+            // byte-reverse lane 0 (network → host order)
+            uint64_t v = f.get(0);
+            uint64_t r = 0;
+            for (int i = 0; i < 8; ++i) r = (r << 8) | ((v >> (i*8)) & 0xFF);
+            f.set(0, r);
+            set_output_port(1, f);
+        }
+        return PORT_1;
+}
+}

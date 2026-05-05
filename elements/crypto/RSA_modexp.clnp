@@ -1,0 +1,14 @@
+// SPDX-License-Identifier: Apache-2.0
+// Auto-generated bulk element stub for OpenClickNP.
+.element RSA_modexp <1, 1> {
+    .state {}
+    .init {}
+    .handler {
+        if (test_input_port(PORT_1)) {
+            openclicknp::flit_t f = read_input_port(PORT_1);
+            // Stub: pass through (real mod_exp lives in dedicated kernels)
+            set_output_port(1, f);
+        }
+        return PORT_1;
+}
+}

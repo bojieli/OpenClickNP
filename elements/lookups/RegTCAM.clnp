@@ -1,0 +1,37 @@
+// SPDX-License-Identifier: Apache-2.0
+// Auto-generated bulk element stub for OpenClickNP.
+.element RegTCAM <1, 1> {
+    .state {
+        constexpr uint32_t ENTRIES = 64;
+        uint64_t key[ENTRIES], mask[ENTRIES], val[ENTRIES];
+        bool valid[ENTRIES];
+}
+    .init {
+        for (uint32_t i = 0; i < _state.ENTRIES; ++i) _state.valid[i] = false;
+}
+    .handler {
+        if (test_input_port(PORT_1)) {
+            openclicknp::flit_t f = read_input_port(PORT_1);
+            uint64_t k = f.get(0);
+            uint64_t v = 0;
+            for (uint32_t i = 0; i < _state.ENTRIES; ++i) {
+                if (_state.valid[i] && (k & _state.mask[i]) == (_state.key[i] & _state.mask[i])) {
+                    v = _state.val[i]; break;
+                }
+            }
+            f.set(2, v);
+            set_output_port(1, f);
+        }
+        return PORT_1;
+}
+    .signal (uint cmd, uint idx) {
+        uint32_t i = event.sparam % _state.ENTRIES;
+        if (event.cmd == 1) {
+            _state.key[i] = event.lparam[0];
+            _state.mask[i] = event.lparam[1];
+            _state.val[i] = event.lparam[2];
+            _state.valid[i] = true;
+        }
+}
+
+}

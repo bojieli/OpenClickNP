@@ -1,0 +1,25 @@
+// SPDX-License-Identifier: Apache-2.0
+// Auto-generated bulk element stub for OpenClickNP.
+.element TrafficGen <0, 1> {
+    .state {
+        uint64_t seq;
+        uint32_t pkt_size_flits;
+        uint32_t cur_flit;
+}
+    .init {_state.seq = 0; _state.pkt_size_flits = 16; _state.cur_flit = 0;}
+    .handler {
+        openclicknp::flit_t f{};
+        f.set(0, _state.seq);
+        f.set_sop(_state.cur_flit == 0);
+        f.set_eop(_state.cur_flit + 1 == _state.pkt_size_flits);
+        set_output_port(1, f);
+        _state.cur_flit++;
+        if (_state.cur_flit == _state.pkt_size_flits) {
+            _state.cur_flit = 0;
+            _state.seq++;
+        }
+        return openclicknp::PORT_ALL;
+}
+    .signal (uint cmd, uint flits) {if (event.cmd == 1) _state.pkt_size_flits = event.sparam;}
+
+}

@@ -1,0 +1,21 @@
+// SPDX-License-Identifier: Apache-2.0
+// Auto-generated bulk element stub for OpenClickNP.
+.element NVGRE_Parser <1, 2> {
+    .state {}
+    .init {}
+    .handler {
+        if (test_input_port(PORT_1)) {
+            openclicknp::flit_t f = read_input_port(PORT_1);
+            set_output_port(1, f);
+            if (f.sop()) {
+                uint8_t buf[32]; f.get_data(buf, 32);
+                openclicknp::flit_t m{};
+                // VNI is bytes after the GRE header; we approximate by lanes
+                m.set(0, f.get(2));
+                m.set_sop(true); m.set_eop(true);
+                set_output_port(2, m);
+            }
+        }
+        return PORT_1;
+}
+}

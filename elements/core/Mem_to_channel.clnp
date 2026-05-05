@@ -1,0 +1,22 @@
+// SPDX-License-Identifier: Apache-2.0
+// Auto-generated bulk element stub for OpenClickNP.
+.element Mem_to_channel <0, 1> {
+    .state {
+        constexpr uint32_t SIZE = 64;
+        openclicknp::flit_t mem[SIZE];
+        uint32_t idx;
+}
+    .init {
+        for (uint32_t i = 0; i < _state.SIZE; ++i) {
+            _state.mem[i].set(0, i);
+            _state.mem[i].set_sop(true);
+            _state.mem[i].set_eop(true);
+        }
+        _state.idx = 0;
+}
+    .handler {
+        set_output_port(1, _state.mem[_state.idx]);
+        _state.idx = (_state.idx + 1) % _state.SIZE;
+        return openclicknp::PORT_ALL;
+}
+}

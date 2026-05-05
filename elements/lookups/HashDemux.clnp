@@ -1,0 +1,14 @@
+// SPDX-License-Identifier: Apache-2.0
+// Auto-generated bulk element stub for OpenClickNP.
+.element HashDemux <1, 4> {
+    .state {}
+    .init {}
+    .handler {
+        if (test_input_port(PORT_1)) {
+            openclicknp::flit_t f = read_input_port(PORT_1);
+            uint32_t h = (static_cast<uint32_t>(f.get(0)) * 2654435761u) % 4u;
+            set_output_port(static_cast<int>(h) + 1, f);
+        }
+        return PORT_1;
+}
+}

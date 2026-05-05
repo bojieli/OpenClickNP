@@ -1,0 +1,39 @@
+// SPDX-License-Identifier: Apache-2.0
+//
+// Counter: count flits and packets, expose via signal RPC. Useful as a
+// pipeline tap (place after a Tee).
+.element Counter <1, 0> {
+    .state {
+        uint64_t flits;
+        uint64_t packets;
+        uint64_t bytes;
+    }
+    .init {
+        _state.flits   = 0;
+        _state.packets = 0;
+        _state.bytes   = 0;
+    }
+    .handler {
+        if (test_input_port(PORT_1)) {
+            openclicknp::flit_t f = read_input_port(PORT_1);
+            _state.flits++;
+            int valid = OPENCLICKNP_PAYLOAD_BYTES;
+            if (f.eop()) {
+                _state.packets++;
+                valid -= f.padbytes();
+                if (valid < 0) valid = 0;
+            }
+            _state.bytes += static_cast<uint64_t>(valid);
+        }
+        return PORT_1;
+    }
+    .signal (uint cmd, uint param) {
+        outevent.lparam[0] = _state.flits;
+        outevent.lparam[1] = _state.packets;
+        outevent.lparam[2] = _state.bytes;
+        if (cmd == 1u) {
+            // reset
+            _state.flits = _state.packets = _state.bytes = 0;
+        }
+    }
+}

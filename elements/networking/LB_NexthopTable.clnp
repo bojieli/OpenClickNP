@@ -1,0 +1,24 @@
+// SPDX-License-Identifier: Apache-2.0
+// Auto-generated bulk element stub for OpenClickNP.
+.element LB_NexthopTable <1, 1> {
+    .state {
+        constexpr uint32_t SIZE = 64;
+        uint32_t backends[SIZE];
+        uint32_t nbackends;
+}
+    .init {
+        _state.nbackends = 4;
+        for (uint32_t i = 0; i < _state.SIZE; ++i) _state.backends[i] = i % _state.nbackends;
+}
+    .handler {
+        if (test_input_port(PORT_1)) {
+            openclicknp::flit_t f = read_input_port(PORT_1);
+            uint32_t h = static_cast<uint32_t>(f.get(0)) % _state.SIZE;
+            f.set(2, _state.backends[h]);
+            set_output_port(1, f);
+        }
+        return PORT_1;
+}
+    .signal (uint cmd, uint n) {if (event.cmd == 1) _state.nbackends = event.sparam;}
+
+}

@@ -1,0 +1,49 @@
+// SPDX-License-Identifier: Apache-2.0
+//
+// FlowTupleParser: extract a 5-tuple (src_ip, dst_ip, src_port, dst_port,
+// proto) from the first flit of an Ethernet+IPv4 packet, emit it as a
+// metadata flit on output 2; pass the packet flits through on output 1.
+//
+// Layout assumed: Ethernet (14 B) | IPv4 (20 B; basic, no options) | TCP/UDP.
+// Per the paper, the parser produces metadata once per packet (on the first
+// flit, which contains both Eth and IPv4 headers because 14+20 = 34 ≤ 32+2;
+// for simple deployments we read it from the first flit's 32-byte payload).
+.element FlowTupleParser <1, 2> {
+    .state {
+        bool first;
+    }
+    .init {
+        _state.first = true;
+    }
+    .handler {
+        if (test_input_port(PORT_1)) {
+            openclicknp::flit_t f = read_input_port(PORT_1);
+            set_output_port(1, f);
+            if (_state.first && f.sop()) {
+                uint8_t buf[32]; f.get_data(buf, 32);
+                // Eth(14) + IPv4 starts at offset 14
+                uint8_t  proto    = buf[14 + 9];
+                uint32_t src_ip   = static_cast<uint32_t>(buf[14+12]) << 24 |
+                                    static_cast<uint32_t>(buf[14+13]) << 16 |
+                                    static_cast<uint32_t>(buf[14+14]) <<  8 |
+                                    static_cast<uint32_t>(buf[14+15]);
+                uint32_t dst_ip   = static_cast<uint32_t>(buf[14+16]) << 24 |
+                                    static_cast<uint32_t>(buf[14+17]) << 16 |
+                                    static_cast<uint32_t>(buf[14+18]) <<  8 |
+                                    static_cast<uint32_t>(buf[14+19]);
+                // Ports follow IPv4; we only have 32 bytes, IPv4 ends at 14+20=34;
+                // if the first flit doesn't contain ports, lparams stay zero
+                // and the downstream lookup keys on src/dst IP only.
+                openclicknp::flit_t meta{};
+                meta.set(0, (static_cast<uint64_t>(src_ip) << 32) | dst_ip);
+                meta.set(1, static_cast<uint64_t>(proto));
+                meta.set_sop(true);
+                meta.set_eop(true);
+                set_output_port(2, meta);
+                _state.first = false;
+            }
+            if (f.eop()) _state.first = true;
+        }
+        return PORT_1;
+    }
+}

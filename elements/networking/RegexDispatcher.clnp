@@ -1,0 +1,14 @@
+// SPDX-License-Identifier: Apache-2.0
+// Auto-generated bulk element stub for OpenClickNP.
+.element RegexDispatcher <1, 4> {
+    .state {}
+    .init {}
+    .handler {
+        if (test_input_port(PORT_1)) {
+            openclicknp::flit_t f = read_input_port(PORT_1);
+            uint32_t bin = static_cast<uint32_t>(f.get(0)) % 4;
+            set_output_port(static_cast<int>(bin) + 1, f);
+        }
+        return PORT_1;
+}
+}

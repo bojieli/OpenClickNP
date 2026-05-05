@@ -1,0 +1,41 @@
+// SPDX-License-Identifier: Apache-2.0
+// Auto-generated bulk element stub for OpenClickNP.
+.element CuckooHash <1, 1> {
+    .state {
+        constexpr uint32_t SIZE = 4096;
+        uint64_t key1[SIZE], key2[SIZE];
+        uint64_t val[SIZE];
+        bool valid[SIZE];
+}
+    .init {
+        for (uint32_t i = 0; i < _state.SIZE; ++i) _state.valid[i] = false;
+}
+    .handler {
+        if (test_input_port(PORT_1)) {
+            openclicknp::flit_t f = read_input_port(PORT_1);
+            uint64_t k0 = f.get(0), k1 = f.get(1);
+            uint32_t h1 = static_cast<uint32_t>(k0) % _state.SIZE;
+            uint32_t h2 = static_cast<uint32_t>(k1 ^ 0x9E3779B97F4A7C15ull) % _state.SIZE;
+            openclicknp::flit_t out = f;
+            if (_state.valid[h1] && _state.key1[h1] == k0 && _state.key2[h1] == k1) {
+                out.set(2, _state.val[h1]); out.set(3, 1);
+            } else if (_state.valid[h2] && _state.key1[h2] == k0 && _state.key2[h2] == k1) {
+                out.set(2, _state.val[h2]); out.set(3, 1);
+            } else { out.set(3, 0); }
+            set_output_port(1, out);
+        }
+        return PORT_1;
+}
+    .signal (uint cmd, uint idx) {
+        uint32_t idx = event.sparam % _state.SIZE;
+        if (event.cmd == 1) {
+            _state.key1[idx] = event.lparam[0];
+            _state.key2[idx] = event.lparam[1];
+            _state.val[idx]  = event.lparam[2];
+            _state.valid[idx] = true;
+        } else if (event.cmd == 2) {
+            _state.valid[idx] = false;
+        }
+}
+
+}

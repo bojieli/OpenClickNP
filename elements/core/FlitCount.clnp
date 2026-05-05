@@ -1,0 +1,26 @@
+// SPDX-License-Identifier: Apache-2.0
+// FlitCount: count flits without modifying them; periodically emit a
+// metadata flit on output 2 with the running count in lane 0.
+.element FlitCount <1, 2> {
+    .state {
+        uint64_t count;
+        uint32_t window;
+    }
+    .init { _state.count = 0; _state.window = 0; }
+    .handler {
+        if (test_input_port(PORT_1)) {
+            openclicknp::flit_t f = read_input_port(PORT_1);
+            set_output_port(1, f);
+            _state.count++;
+            _state.window++;
+            if (_state.window == 1024u) {
+                openclicknp::flit_t m{};
+                m.set(0, _state.count);
+                m.set_sop(true); m.set_eop(true);
+                set_output_port(2, m);
+                _state.window = 0;
+            }
+        }
+        return PORT_1;
+    }
+}

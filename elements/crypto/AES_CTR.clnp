@@ -1,0 +1,22 @@
+// SPDX-License-Identifier: Apache-2.0
+// Auto-generated bulk element stub for OpenClickNP.
+.element AES_CTR <1, 1> {
+    .state {
+        uint64_t counter;
+        uint64_t key0, key1;
+}
+    .init {_state.counter = 0; _state.key0 = 0xDEADBEEFCAFEBABEull; _state.key1 = 0x1234567890ABCDEFull;}
+    .handler {
+        if (test_input_port(PORT_1)) {
+            openclicknp::flit_t f = read_input_port(PORT_1);
+            // Toy XOR-with-counter (placeholder for real AES rounds)
+            f.set(0, f.get(0) ^ (_state.key0 + _state.counter));
+            f.set(1, f.get(1) ^ (_state.key1 + _state.counter));
+            _state.counter++;
+            set_output_port(1, f);
+        }
+        return PORT_1;
+}
+    .signal (uint cmd, uint p) {if (event.cmd == 1) { _state.key0 = event.lparam[0]; _state.key1 = event.lparam[1]; }}
+
+}

@@ -1,0 +1,18 @@
+// SPDX-License-Identifier: Apache-2.0
+// Auto-generated bulk element stub for OpenClickNP.
+.element Montgomery <2, 1> {
+    .state {}
+    .init {}
+    .handler {
+        if (test_input_port(PORT_1) && test_input_port(PORT_2)) {
+            openclicknp::flit_t a = read_input_port(PORT_1);
+            openclicknp::flit_t b = read_input_port(PORT_2);
+            openclicknp::flit_t out{};
+            // Toy Montgomery step: out = (a*b) >> 64 (mod 2^64)
+            out.set(0, a.get(0) * b.get(0));
+            out.set_sop(true); out.set_eop(true);
+            set_output_port(1, out);
+        }
+        return openclicknp::PORT_ALL;
+}
+}

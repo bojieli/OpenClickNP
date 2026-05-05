@@ -1,0 +1,22 @@
+// SPDX-License-Identifier: Apache-2.0
+//
+// Demux: 1-input, N-output round-robin distributor.
+.element Demux <1, 2> {
+    .state {
+        uint8_t rr;
+        uint64_t distributed;
+    }
+    .init {
+        _state.rr = 1;
+        _state.distributed = 0;
+    }
+    .handler {
+        if (test_input_port(PORT_1)) {
+            openclicknp::flit_t f = read_input_port(PORT_1);
+            set_output_port(_state.rr, f);
+            _state.rr = static_cast<uint8_t>((_state.rr % 8) + 1);
+            _state.distributed++;
+        }
+        return PORT_1;
+    }
+}

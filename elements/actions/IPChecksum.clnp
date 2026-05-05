@@ -1,0 +1,41 @@
+// SPDX-License-Identifier: Apache-2.0
+//
+// IPChecksum: compute the IPv4 header checksum from the first flit of an
+// Ethernet+IPv4 packet and emit a metadata flit carrying the new checksum
+// on output 2; pass the packet flits unchanged on output 1.
+.element IPChecksum <1, 2> {
+    .state {
+        bool first;
+    }
+    .init {
+        _state.first = true;
+    }
+    .handler {
+        if (test_input_port(PORT_1)) {
+            openclicknp::flit_t f = read_input_port(PORT_1);
+            set_output_port(1, f);
+            if (_state.first && f.sop()) {
+                uint8_t buf[32]; f.get_data(buf, 32);
+                // Zero the checksum field at IPv4 offset 10..11 (relative
+                // to start of IP header at byte 14).
+                uint32_t sum = 0;
+                for (int i = 0; i < 20; i += 2) {
+                    if (i == 10) continue;
+                    uint16_t w = (static_cast<uint16_t>(buf[14 + i]) << 8) |
+                                  static_cast<uint16_t>(buf[14 + i + 1]);
+                    sum += w;
+                }
+                while (sum >> 16) sum = (sum & 0xFFFFu) + (sum >> 16);
+                uint16_t csum = static_cast<uint16_t>(~sum);
+                openclicknp::flit_t meta{};
+                meta.set(0, csum);
+                meta.set_sop(true);
+                meta.set_eop(true);
+                set_output_port(2, meta);
+                _state.first = false;
+            }
+            if (f.eop()) _state.first = true;
+        }
+        return PORT_1;
+    }
+}

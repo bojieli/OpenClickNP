@@ -1,0 +1,25 @@
+// SPDX-License-Identifier: Apache-2.0
+// FixSopEop: force the first flit of a packet to have sop=1 and the last
+// to have eop=1. Useful immediately after re-segmenting a stream.
+.element FixSopEop <1, 1> {
+    .state {
+        bool first_after_eop;
+        openclicknp::flit_t prev;
+        bool prev_valid;
+    }
+    .init { _state.first_after_eop = true; _state.prev_valid = false; }
+    .handler {
+        if (test_input_port(PORT_1)) {
+            openclicknp::flit_t f = read_input_port(PORT_1);
+            if (_state.prev_valid) {
+                if (f.eop()) _state.prev.set_eop(false);
+                set_output_port(1, _state.prev);
+            }
+            if (_state.first_after_eop) f.set_sop(true);
+            _state.first_after_eop = f.eop();
+            _state.prev = f;
+            _state.prev_valid = true;
+        }
+        return PORT_1;
+    }
+}

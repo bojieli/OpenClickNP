@@ -1,0 +1,19 @@
+// SPDX-License-Identifier: Apache-2.0
+// Sync: 2-input rendezvous. Both inputs must have data; emits a paired
+// output (lane 0..1 of port 1 carries input 1, lane 2..3 carries input 2).
+.element Sync <2, 1> {
+    .state {}
+    .init {}
+    .handler {
+        if (test_input_port(PORT_1) && test_input_port(PORT_2)) {
+            openclicknp::flit_t a = read_input_port(PORT_1);
+            openclicknp::flit_t b = read_input_port(PORT_2);
+            openclicknp::flit_t out{};
+            out.set(0, a.get(0)); out.set(1, a.get(1));
+            out.set(2, b.get(0)); out.set(3, b.get(1));
+            out.set_sop(a.sop()); out.set_eop(a.eop());
+            set_output_port(1, out);
+        }
+        return openclicknp::PORT_ALL;
+    }
+}

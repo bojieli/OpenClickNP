@@ -1,0 +1,22 @@
+// SPDX-License-Identifier: Apache-2.0
+// Auto-generated bulk element stub for OpenClickNP.
+.element VLAN_Parser <1, 2> {
+    .state {}
+    .init {}
+    .handler {
+        if (test_input_port(PORT_1)) {
+            openclicknp::flit_t f = read_input_port(PORT_1);
+            set_output_port(1, f);
+            uint8_t buf[32]; f.get_data(buf, 32);
+            uint16_t tpid = (uint16_t(buf[12]) << 8) | buf[13];
+            if (tpid == 0x8100) {
+                openclicknp::flit_t m{};
+                uint16_t tci = (uint16_t(buf[14]) << 8) | buf[15];
+                m.set(0, tci & 0x0FFF);
+                m.set_sop(true); m.set_eop(true);
+                set_output_port(2, m);
+            }
+        }
+        return PORT_1;
+}
+}

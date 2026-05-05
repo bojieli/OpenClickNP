@@ -1,0 +1,17 @@
+// SPDX-License-Identifier: Apache-2.0
+// Clock: free-running cycle counter readable via signal RPC. Useful as a
+// time source for latency measurements when paired with a TimeStamp parser.
+.element Clock <0, 0> {
+    .state {
+        uint64_t cycles;
+    }
+    .init { _state.cycles = 0; }
+    .handler {
+        _state.cycles++;
+        return openclicknp::PORT_ALL;
+    }
+    .signal (uint cmd, uint p) {
+        outevent.lparam[0] = _state.cycles;
+        if (event.cmd == 1) _state.cycles = 0;
+    }
+}

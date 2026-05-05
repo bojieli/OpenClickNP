@@ -1,0 +1,14 @@
+// SPDX-License-Identifier: Apache-2.0
+// Auto-generated bulk element stub for OpenClickNP.
+.element NexthopAlloc <1, 1> {
+    .state {uint64_t allocs;}
+    .init {_state.allocs = 0;}
+    .handler {
+        if (test_input_port(PORT_1)) {
+            openclicknp::flit_t f = read_input_port(PORT_1);
+            f.set(2, _state.allocs++);
+            set_output_port(1, f);
+        }
+        return PORT_1;
+}
+}

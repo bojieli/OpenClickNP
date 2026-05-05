@@ -1,0 +1,27 @@
+// SPDX-License-Identifier: Apache-2.0
+// Auto-generated bulk element stub for OpenClickNP.
+.element L4LoadBalancer <1, 1> {
+    .state {
+        constexpr uint32_t SIZE = 256;
+        uint64_t backend_ip[SIZE];
+        uint32_t nbackends;
+}
+    .init {_state.nbackends = 1; _state.backend_ip[0] = 0x0a000001;}
+    .handler {
+        if (test_input_port(PORT_1)) {
+            openclicknp::flit_t f = read_input_port(PORT_1);
+            uint32_t h = static_cast<uint32_t>(f.get(0)) % _state.nbackends;
+            f.set(2, _state.backend_ip[h]);
+            set_output_port(1, f);
+        }
+        return PORT_1;
+}
+    .signal (uint cmd, uint idx) {
+        if (event.cmd == 1) {
+            uint32_t i = event.sparam % _state.SIZE;
+            _state.backend_ip[i] = event.lparam[0];
+            if (i + 1 > _state.nbackends) _state.nbackends = i + 1;
+        }
+}
+
+}

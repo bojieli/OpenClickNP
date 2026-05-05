@@ -1,0 +1,12 @@
+// SPDX-License-Identifier: Apache-2.0
+// Auto-generated bulk element stub for OpenClickNP.
+.element ZeroSource <0, 1> {
+    .state {}
+    .init {}
+    .handler {
+        openclicknp::flit_t z{};
+        z.set_sop(true); z.set_eop(true);
+        set_output_port(1, z);
+        return openclicknp::PORT_ALL;
+}
+}

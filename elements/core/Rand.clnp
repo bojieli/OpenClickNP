@@ -1,0 +1,17 @@
+// SPDX-License-Identifier: Apache-2.0
+// Auto-generated bulk element stub for OpenClickNP.
+.element Rand <1, 1> {
+    .state {uint64_t lfsr;}
+    .init {_state.lfsr = 0x123456789ABCDEF0ull;}
+    .handler {
+        if (test_input_port(PORT_1)) {
+            openclicknp::flit_t f = read_input_port(PORT_1);
+            uint64_t x = _state.lfsr;
+            x ^= x << 13; x ^= x >> 7; x ^= x << 17;
+            _state.lfsr = x;
+            f.set(3, x);
+            set_output_port(1, f);
+        }
+        return PORT_1;
+}
+}

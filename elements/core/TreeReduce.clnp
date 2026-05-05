@@ -1,0 +1,22 @@
+// SPDX-License-Identifier: Apache-2.0
+// TreeReduce: 4-input → 1-output reduction. Each iteration sums lane 0 of
+// any inputs that have a flit ready and emits the result.
+.element TreeReduce <4, 1> {
+    .state {}
+    .init {}
+    .handler {
+        uint64_t s = 0;
+        bool any = false;
+        if (test_input_port(PORT_1)) { s += read_input_port(PORT_1).get(0); any = true; }
+        if (test_input_port(PORT_2)) { s += read_input_port(PORT_2).get(0); any = true; }
+        if (test_input_port(PORT_3)) { s += read_input_port(PORT_3).get(0); any = true; }
+        if (test_input_port(PORT_4)) { s += read_input_port(PORT_4).get(0); any = true; }
+        if (any) {
+            openclicknp::flit_t out{};
+            out.set(0, s);
+            out.set_sop(true); out.set_eop(true);
+            set_output_port(1, out);
+        }
+        return openclicknp::PORT_ALL;
+    }
+}

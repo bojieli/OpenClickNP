@@ -1,0 +1,14 @@
+// SPDX-License-Identifier: Apache-2.0
+// Auto-generated bulk element stub for OpenClickNP.
+.element NVGRE_Match_Pre <1, 2> {
+    .state {}
+    .init {}
+    .handler {
+        if (test_input_port(PORT_1)) {
+            openclicknp::flit_t f = read_input_port(PORT_1);
+            set_output_port(1, f);
+            if (f.sop()) { openclicknp::flit_t m{}; m.set(0, f.get(2)); m.set_sop(true); m.set_eop(true); set_output_port(2, m); }
+        }
+        return PORT_1;
+}
+}

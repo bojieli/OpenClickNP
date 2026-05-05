@@ -1,0 +1,58 @@
+// SPDX-License-Identifier: Apache-2.0
+//
+// RateLimiter: token-bucket policer.
+//   - tokens are added each cycle at rate `tokens_per_cycle` (Q16 fixed-point).
+//   - a flit can pass only if at least 64 tokens are available (one flit's
+//     worth of bytes); otherwise the flit is dropped.
+//
+// Signal RPC:
+//   cmd=1, sparam=rate (Q16 tokens-per-cycle), lparam[0]=burst (max tokens)
+//   cmd=2 → reset stats; lparam[0..2] return passed/dropped/current_tokens
+.element RateLimiter <1, 1> {
+    .state {
+        uint32_t rate_q16;
+        uint32_t burst;
+        uint32_t tokens;
+        uint64_t passed;
+        uint64_t dropped;
+        uint32_t frac;
+    }
+    .init {
+        _state.rate_q16 = 0x10000u;   // default: 1 token per cycle
+        _state.burst    = 1u << 16;
+        _state.tokens   = _state.burst;
+        _state.passed   = _state.dropped = 0;
+        _state.frac     = 0;
+    }
+    .handler {
+        // Refill
+        uint32_t added = _state.frac + _state.rate_q16;
+        _state.tokens = (_state.tokens + (added >> 16) > _state.burst)
+                        ? _state.burst
+                        : _state.tokens + (added >> 16);
+        _state.frac   = added & 0xFFFFu;
+
+        if (test_input_port(PORT_1)) {
+            openclicknp::flit_t f = read_input_port(PORT_1);
+            if (_state.tokens >= 64u) {
+                _state.tokens -= 64u;
+                set_output_port(1, f);
+                _state.passed++;
+            } else {
+                _state.dropped++;
+            }
+        }
+        return PORT_1;
+    }
+    .signal (uint cmd, uint sparam) {
+        if (event.cmd == 1) {
+            _state.rate_q16 = static_cast<uint32_t>(event.sparam);
+            _state.burst    = static_cast<uint32_t>(event.lparam[0]);
+        } else if (event.cmd == 2) {
+            _state.passed = _state.dropped = 0;
+        }
+        outevent.lparam[0] = _state.passed;
+        outevent.lparam[1] = _state.dropped;
+        outevent.lparam[2] = _state.tokens;
+    }
+}

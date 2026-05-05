@@ -1,0 +1,24 @@
+// SPDX-License-Identifier: Apache-2.0
+// Auto-generated bulk element stub for OpenClickNP.
+.element FlitMetaBuffer <1, 1> {
+    .state {
+        constexpr uint32_t DEPTH = 16;
+        openclicknp::flit_t buf[DEPTH];
+        uint32_t head, tail;
+}
+    .init {_state.head = _state.tail = 0;}
+    .handler {
+        if (test_input_port(PORT_1)) {
+            uint32_t n = (_state.head + 1) % _state.DEPTH;
+            if (n != _state.tail) {
+                _state.buf[_state.head] = read_input_port(PORT_1);
+                _state.head = n;
+            }
+        }
+        if (_state.head != _state.tail) {
+            set_output_port(1, _state.buf[_state.tail]);
+            _state.tail = (_state.tail + 1) % _state.DEPTH;
+        }
+        return PORT_1;
+}
+}

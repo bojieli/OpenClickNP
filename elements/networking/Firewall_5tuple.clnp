@@ -1,0 +1,24 @@
+// SPDX-License-Identifier: Apache-2.0
+// Auto-generated bulk element stub for OpenClickNP.
+.element Firewall_5tuple <1, 1> {
+    .state {
+        uint64_t allow_keys[16];
+        uint8_t  nrules;
+}
+    .init {_state.nrules = 0;}
+    .handler {
+        if (test_input_port(PORT_1)) {
+            openclicknp::flit_t f = read_input_port(PORT_1);
+            uint64_t k = f.get(0);
+            bool allow = false;
+            for (uint8_t i = 0; i < _state.nrules; ++i)
+                if (_state.allow_keys[i] == k) { allow = true; break; }
+            if (allow) set_output_port(1, f);
+        }
+        return PORT_1;
+}
+    .signal (uint cmd, uint p) {
+        if (event.cmd == 1 && _state.nrules < 16) _state.allow_keys[_state.nrules++] = event.lparam[0];
+}
+
+}

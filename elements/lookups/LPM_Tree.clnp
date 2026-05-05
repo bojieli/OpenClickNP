@@ -1,0 +1,45 @@
+// SPDX-License-Identifier: Apache-2.0
+// Auto-generated bulk element stub for OpenClickNP.
+.element LPM_Tree <1, 1> {
+    .state {
+        constexpr uint32_t DEPTH = 32;
+        constexpr uint32_t WIDTH = 256;
+        int16_t left[DEPTH][WIDTH];
+        int16_t right[DEPTH][WIDTH];
+        uint16_t value[DEPTH][WIDTH];
+}
+    .init {
+        for (uint32_t d = 0; d < _state.DEPTH; ++d)
+            for (uint32_t w = 0; w < _state.WIDTH; ++w) {
+                _state.left[d][w] = -1; _state.right[d][w] = -1; _state.value[d][w] = 0;
+            }
+}
+    .handler {
+        if (test_input_port(PORT_1)) {
+            openclicknp::flit_t f = read_input_port(PORT_1);
+            uint32_t ip = static_cast<uint32_t>(f.get(0));
+            int pos = 0;
+            uint16_t result = 0;
+            for (uint32_t d = 0; d < _state.DEPTH; ++d) {
+                if (pos < 0) break;
+                result = _state.value[d][pos];
+                bool bit = (ip >> (31 - d)) & 1u;
+                pos = bit ? _state.left[d][pos] : _state.right[d][pos];
+            }
+            f.set(2, result);
+            set_output_port(1, f);
+        }
+        return PORT_1;
+}
+    .signal (uint cmd, uint sparam) {
+        // cmd=1 update node: depth=sparam>>16, pos=sparam&0xFFFF, lparam[0..2]=val,left,right
+        uint32_t depth = (event.sparam >> 16) & 0xFFu;
+        uint32_t pos = event.sparam & 0xFFFFu;
+        if (event.cmd == 1 && depth < _state.DEPTH && pos < _state.WIDTH) {
+            _state.value[depth][pos] = static_cast<uint16_t>(event.lparam[0]);
+            _state.left [depth][pos] = static_cast<int16_t>(event.lparam[1]);
+            _state.right[depth][pos] = static_cast<int16_t>(event.lparam[2]);
+        }
+}
+
+}

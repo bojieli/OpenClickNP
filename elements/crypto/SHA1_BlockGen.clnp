@@ -1,0 +1,16 @@
+// SPDX-License-Identifier: Apache-2.0
+// Auto-generated bulk element stub for OpenClickNP.
+.element SHA1_BlockGen <1, 1> {
+    .state {uint64_t blk_count;}
+    .init {_state.blk_count = 0;}
+    .handler {
+        if (test_input_port(PORT_1)) {
+            openclicknp::flit_t f = read_input_port(PORT_1);
+            _state.blk_count++;
+            set_output_port(1, f);
+        }
+        return PORT_1;
+}
+    .signal (uint cmd, uint p) {outevent.lparam[0] = _state.blk_count;}
+
+}

@@ -1,0 +1,26 @@
+// SPDX-License-Identifier: Apache-2.0
+//
+// DropElem: discard everything received on input port 1. Counts dropped
+// flits/packets/bytes and exposes them via signal.
+.element DropElem <1, 0> {
+    .state {
+        uint64_t dropped_flits;
+        uint64_t dropped_packets;
+    }
+    .init {
+        _state.dropped_flits   = 0;
+        _state.dropped_packets = 0;
+    }
+    .handler {
+        if (test_input_port(PORT_1)) {
+            openclicknp::flit_t f = read_input_port(PORT_1);
+            _state.dropped_flits++;
+            if (f.eop()) _state.dropped_packets++;
+        }
+        return PORT_1;
+    }
+    .signal (uint cmd, uint p) {
+        outevent.lparam[0] = _state.dropped_flits;
+        outevent.lparam[1] = _state.dropped_packets;
+    }
+}

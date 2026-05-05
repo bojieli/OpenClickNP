@@ -1,0 +1,23 @@
+// SPDX-License-Identifier: Apache-2.0
+// Auto-generated bulk element stub for OpenClickNP.
+.element PacketSetDIP <1, 1> {
+    .state {uint32_t new_dip;}
+    .init {_state.new_dip = 0;}
+    .handler {
+        if (test_input_port(PORT_1)) {
+            openclicknp::flit_t f = read_input_port(PORT_1);
+            if (f.sop()) {
+                uint8_t buf[32]; f.get_data(buf, 32);
+                buf[14+16] = static_cast<uint8_t>(_state.new_dip >> 24);
+                buf[14+17] = static_cast<uint8_t>(_state.new_dip >> 16);
+                buf[14+18] = static_cast<uint8_t>(_state.new_dip >> 8);
+                buf[14+19] = static_cast<uint8_t>(_state.new_dip);
+                f.set_data(buf, 32);
+            }
+            set_output_port(1, f);
+        }
+        return PORT_1;
+}
+    .signal (uint cmd, uint p) {if (event.cmd == 1) _state.new_dip = static_cast<uint32_t>(event.lparam[0]);}
+
+}

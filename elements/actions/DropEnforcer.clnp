@@ -1,0 +1,19 @@
+// SPDX-License-Identifier: Apache-2.0
+// Auto-generated bulk element stub for OpenClickNP.
+.element DropEnforcer <2, 1> {
+    .state {}
+    .init {}
+    .handler {
+        if (test_input_port(PORT_2)) {
+            openclicknp::flit_t verdict = read_input_port(PORT_2);
+            if (verdict.get(0) != 0 && test_input_port(PORT_1)) {
+                set_output_port(1, read_input_port(PORT_1));
+            } else if (test_input_port(PORT_1)) {
+                (void)read_input_port(PORT_1);   // drop
+            }
+        } else if (test_input_port(PORT_1)) {
+            set_output_port(1, read_input_port(PORT_1));   // pass through if no verdict
+        }
+        return openclicknp::PORT_ALL;
+}
+}

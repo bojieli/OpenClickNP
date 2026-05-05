@@ -1,0 +1,21 @@
+// SPDX-License-Identifier: Apache-2.0
+// StagingReg: registered single-cycle pipeline stage. Useful between long
+// combinational paths to break timing.
+.element StagingReg <1, 1> {
+    .state {
+        openclicknp::flit_t reg;
+        bool valid;
+    }
+    .init { _state.valid = false; }
+    .handler {
+        if (_state.valid) {
+            set_output_port(1, _state.reg);
+            _state.valid = false;
+        }
+        if (test_input_port(PORT_1)) {
+            _state.reg = read_input_port(PORT_1);
+            _state.valid = true;
+        }
+        return PORT_1;
+    }
+}

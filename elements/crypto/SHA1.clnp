@@ -1,0 +1,27 @@
+// SPDX-License-Identifier: Apache-2.0
+// Auto-generated bulk element stub for OpenClickNP.
+.element SHA1 <1, 1> {
+    .state {
+        uint32_t h[5];
+}
+    .init {
+        _state.h[0] = 0x67452301; _state.h[1] = 0xEFCDAB89;
+        _state.h[2] = 0x98BADCFE; _state.h[3] = 0x10325476;
+        _state.h[4] = 0xC3D2E1F0;
+}
+    .handler {
+        if (test_input_port(PORT_1)) {
+            openclicknp::flit_t f = read_input_port(PORT_1);
+            // Simple feed-forward update (toy; full SHA-1 needs the
+            // 80-round expansion, this exercises the dataflow shape).
+            uint32_t w0 = static_cast<uint32_t>(f.get(0));
+            uint32_t a = _state.h[0], b = _state.h[1], c = _state.h[2], d = _state.h[3], e = _state.h[4];
+            uint32_t t = ((a << 5) | (a >> 27)) + ((b & c) | (~b & d)) + e + w0 + 0x5A827999u;
+            _state.h[4] = d; _state.h[3] = c; _state.h[2] = (b << 30) | (b >> 2);
+            _state.h[1] = a; _state.h[0] = t;
+            f.set(2, (uint64_t(_state.h[0]) << 32) | _state.h[1]);
+            set_output_port(1, f);
+        }
+        return PORT_1;
+}
+}

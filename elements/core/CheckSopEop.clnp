@@ -1,0 +1,39 @@
+// SPDX-License-Identifier: Apache-2.0
+// CheckSopEop: validate that every packet has a single sop and a single eop;
+// emit an error metadata flit on output 2 on violation; pass packet on
+// output 1 unchanged.
+.element CheckSopEop <1, 2> {
+    .state {
+        bool in_packet;
+        uint64_t errors;
+    }
+    .init { _state.in_packet = false; _state.errors = 0; }
+    .handler {
+        if (test_input_port(PORT_1)) {
+            openclicknp::flit_t f = read_input_port(PORT_1);
+            if (f.sop()) {
+                if (_state.in_packet) {
+                    openclicknp::flit_t err{};
+                    err.set(0, _state.errors++);
+                    err.set_sop(true); err.set_eop(true);
+                    set_output_port(2, err);
+                }
+                _state.in_packet = true;
+            }
+            if (f.eop()) {
+                if (!_state.in_packet) {
+                    openclicknp::flit_t err{};
+                    err.set(0, _state.errors++);
+                    err.set_sop(true); err.set_eop(true);
+                    set_output_port(2, err);
+                }
+                _state.in_packet = false;
+            }
+            set_output_port(1, f);
+        }
+        return PORT_1;
+    }
+    .signal (uint cmd, uint p) {
+        outevent.lparam[0] = _state.errors;
+    }
+}

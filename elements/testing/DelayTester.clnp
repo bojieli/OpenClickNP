@@ -1,0 +1,15 @@
+// SPDX-License-Identifier: Apache-2.0
+// Auto-generated bulk element stub for OpenClickNP.
+.element DelayTester <1, 1> {
+    .state {uint64_t latency;}
+    .init {_state.latency = 0;}
+    .handler {
+        if (test_input_port(PORT_1)) {
+            set_output_port(1, read_input_port(PORT_1));
+            _state.latency++;
+        }
+        return PORT_1;
+}
+    .signal (uint cmd, uint p) {outevent.lparam[0] = _state.latency;}
+
+}

@@ -1,0 +1,16 @@
+// SPDX-License-Identifier: Apache-2.0
+// Auto-generated bulk element stub for OpenClickNP.
+.element RateLimitOneRate <1, 1> {
+    .state {
+        uint32_t tokens, rate;
+}
+    .init {_state.tokens = 0; _state.rate = 1;}
+    .handler {
+        _state.tokens = (_state.tokens < 1024) ? (_state.tokens + _state.rate) : _state.tokens;
+        if (_state.tokens >= 64 && test_input_port(PORT_1)) {
+            set_output_port(1, read_input_port(PORT_1));
+            _state.tokens -= 64;
+        }
+        return PORT_1;
+}
+}

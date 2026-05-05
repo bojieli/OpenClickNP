@@ -1,0 +1,33 @@
+// SPDX-License-Identifier: Apache-2.0
+// Auto-generated bulk element stub for OpenClickNP.
+.element PriorityQueueSystolic <1, 1> {
+    .state {
+        constexpr uint32_t Q = 64;
+        uint32_t prio[Q];
+        openclicknp::flit_t data[Q];
+        uint32_t size;
+}
+    .init {_state.size = 0;}
+    .handler {
+        if (test_input_port(PORT_1) && _state.size < _state.Q) {
+            openclicknp::flit_t f = read_input_port(PORT_1);
+            uint32_t key = static_cast<uint32_t>(f.get(0));
+            uint32_t i = _state.size++;
+            while (i > 0 && _state.prio[i-1] < key) {
+                _state.prio[i] = _state.prio[i-1];
+                _state.data[i] = _state.data[i-1];
+                --i;
+            }
+            _state.prio[i] = key; _state.data[i] = f;
+        }
+        if (_state.size > 0) {
+            set_output_port(1, _state.data[0]);
+            for (uint32_t i = 1; i < _state.size; ++i) {
+                _state.prio[i-1] = _state.prio[i];
+                _state.data[i-1] = _state.data[i];
+            }
+            _state.size--;
+        }
+        return PORT_1;
+}
+}

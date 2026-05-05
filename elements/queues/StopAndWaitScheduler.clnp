@@ -1,0 +1,16 @@
+// SPDX-License-Identifier: Apache-2.0
+// Auto-generated bulk element stub for OpenClickNP.
+.element StopAndWaitScheduler <1, 1> {
+    .state {bool waiting;}
+    .init {_state.waiting = false;}
+    .handler {
+        if (!_state.waiting && test_input_port(PORT_1)) {
+            openclicknp::flit_t f = read_input_port(PORT_1);
+            set_output_port(1, f);
+            _state.waiting = true;
+        }
+        return PORT_1;
+}
+    .signal (uint cmd, uint p) {_state.waiting = false;}
+
+}

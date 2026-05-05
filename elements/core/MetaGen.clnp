@@ -1,0 +1,30 @@
+// SPDX-License-Identifier: Apache-2.0
+// MetaGen: generate a metadata flit per N data flits, useful for periodic
+// telemetry tap. The metadata carries the running flit/packet/byte counts.
+.element MetaGen <1, 2> {
+    .state {
+        uint64_t flits, packets, bytes;
+        uint32_t window;
+    }
+    .init { _state.flits = _state.packets = _state.bytes = 0; _state.window = 0; }
+    .handler {
+        if (test_input_port(PORT_1)) {
+            openclicknp::flit_t f = read_input_port(PORT_1);
+            _state.flits++;
+            int valid = OPENCLICKNP_PAYLOAD_BYTES;
+            if (f.eop()) { _state.packets++; valid -= f.padbytes(); if (valid < 0) valid = 0; }
+            _state.bytes += static_cast<uint64_t>(valid);
+            set_output_port(1, f);
+            if (++_state.window >= 1024u) {
+                openclicknp::flit_t m{};
+                m.set(0, _state.flits);
+                m.set(1, _state.packets);
+                m.set(2, _state.bytes);
+                m.set_sop(true); m.set_eop(true);
+                set_output_port(2, m);
+                _state.window = 0;
+            }
+        }
+        return PORT_1;
+    }
+}

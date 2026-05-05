@@ -1,0 +1,14 @@
+// SPDX-License-Identifier: Apache-2.0
+// Auto-generated bulk element stub for OpenClickNP.
+.element AppendHMAC <1, 1> {
+    .state {uint64_t hmac;}
+    .init {_state.hmac = 0xCAFEBABEDEADBEEFull;}
+    .handler {
+        if (test_input_port(PORT_1)) {
+            openclicknp::flit_t f = read_input_port(PORT_1);
+            f.set(3, _state.hmac);
+            set_output_port(1, f);
+        }
+        return PORT_1;
+}
+}

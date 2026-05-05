@@ -1,0 +1,19 @@
+// SPDX-License-Identifier: Apache-2.0
+// Auto-generated bulk element stub for OpenClickNP.
+.element TripleQueue <3, 1> {
+    .state {uint8_t rr;}
+    .init {_state.rr = 0;}
+    .handler {
+        for (uint8_t off = 0; off < 3; ++off) {
+            uint8_t s = (_state.rr + off) % 3 + 1;
+            openclicknp::port_mask_t m = openclicknp::PORT_BIT(s);
+            if (_input_port & m) {
+                set_output_port(1, _input_data[s]);
+                clear_input_ready(m);
+                _state.rr = (s) % 3;
+                break;
+            }
+        }
+        return openclicknp::PORT_ALL;
+}
+}

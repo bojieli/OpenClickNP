@@ -1,0 +1,46 @@
+// SPDX-License-Identifier: Apache-2.0
+// Auto-generated bulk element stub for OpenClickNP.
+.element MinHeap <1, 1> {
+    .state {
+        constexpr uint32_t HEAP_SIZE = 64;
+        uint64_t prio[HEAP_SIZE];
+        openclicknp::flit_t data[HEAP_SIZE];
+        uint32_t size;
+}
+    .init {_state.size = 0;}
+    .handler {
+        if (test_input_port(PORT_1) && _state.size < _state.HEAP_SIZE) {
+            openclicknp::flit_t f = read_input_port(PORT_1);
+            uint32_t i = _state.size++;
+            _state.prio[i] = f.get(0);
+            _state.data[i] = f;
+            // Sift up
+            while (i > 0) {
+                uint32_t p = (i - 1) / 2;
+                if (_state.prio[i] < _state.prio[p]) {
+                    uint64_t t = _state.prio[i]; _state.prio[i] = _state.prio[p]; _state.prio[p] = t;
+                    openclicknp::flit_t d = _state.data[i]; _state.data[i] = _state.data[p]; _state.data[p] = d;
+                    i = p;
+                } else break;
+            }
+        }
+        if (_state.size > 0) {
+            set_output_port(1, _state.data[0]);
+            _state.size--;
+            _state.prio[0] = _state.prio[_state.size];
+            _state.data[0] = _state.data[_state.size];
+            // Sift down
+            uint32_t i = 0;
+            while (true) {
+                uint32_t l = 2*i + 1, r = 2*i + 2, m = i;
+                if (l < _state.size && _state.prio[l] < _state.prio[m]) m = l;
+                if (r < _state.size && _state.prio[r] < _state.prio[m]) m = r;
+                if (m == i) break;
+                uint64_t t = _state.prio[i]; _state.prio[i] = _state.prio[m]; _state.prio[m] = t;
+                openclicknp::flit_t d = _state.data[i]; _state.data[i] = _state.data[m]; _state.data[m] = d;
+                i = m;
+            }
+        }
+        return PORT_1;
+}
+}

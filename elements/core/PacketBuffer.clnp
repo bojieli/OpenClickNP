@@ -1,0 +1,32 @@
+// SPDX-License-Identifier: Apache-2.0
+// PacketBuffer: buffer up to N flits of a packet at a time; emit them once
+// EOP is observed. Useful for store-and-forward processing (e.g., FCS
+// checking before forwarding).
+.element PacketBuffer <1, 1> {
+    .state {
+        constexpr uint32_t MAX_FLITS = 64;
+        openclicknp::flit_t pkt[MAX_FLITS];
+        uint32_t fill;
+        bool ready;
+        uint32_t emit_idx;
+    }
+    .init { _state.fill = 0; _state.ready = false; _state.emit_idx = 0; }
+    .handler {
+        if (_state.ready) {
+            if (_state.emit_idx < _state.fill) {
+                set_output_port(1, _state.pkt[_state.emit_idx++]);
+            } else {
+                _state.ready = false;
+                _state.fill = 0;
+                _state.emit_idx = 0;
+            }
+        } else if (test_input_port(PORT_1)) {
+            openclicknp::flit_t f = read_input_port(PORT_1);
+            if (_state.fill < _state.MAX_FLITS) {
+                _state.pkt[_state.fill++] = f;
+                if (f.eop()) { _state.ready = true; _state.emit_idx = 0; }
+            }
+        }
+        return PORT_1;
+    }
+}
