@@ -1,0 +1,17 @@
+application,element_count,graph_depth,latency_us
+AES_Encryption,2,2,0.019
+DDoSDetect,5,2,0.019
+Firewall,8,2,0.019
+FlowMonitor,3,3,0.028
+IP_Forwarding,3,3,0.028
+L4LoadBalancer,5,5,0.047
+NVGRE_Decap,2,2,0.019
+NVGRE_Encap,5,5,0.047
+PacketCapture,2,2,0.019
+PacketLogger,2,2,0.019
+PassTraffic,2,2,0.019
+PFabric,2,2,0.019
+PortScanDetect,3,3,0.028
+RateLimiter,2,2,0.019
+RoCE_Gateway,3,3,0.028
+VLAN_Bridge,3,3,0.028

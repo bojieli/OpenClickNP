@@ -1,0 +1,24 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2025 Advanced Micro Devices, Inc. All Rights Reserved.
+--------------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version      : Vivado v.2025.2 (lin64) Build 6299465 Fri Nov 14 12:34:56 MST 2025
+| Date              : Tue May  5 03:55:52 2026
+| Host              : ubuntu running 64-bit Ubuntu 22.04.5 LTS
+| Command           : report_clock_interaction -delay_type max -file /home/ubuntu/OpenClickNP/eval/reports/clock_interaction_status_block.rpt
+| Design            : openclicknp_status
+| Device            : xcu50-fsvh2104
+| Speed File        : -2  PRODUCTION 1.30 05-01-2022
+| Design State      : Synthesized
+| Temperature Grade : E
+--------------------------------------------------------------------------------------------------------------------------------------------------
+
+Clock Interaction Report
+
+Clock Interaction Table
+-----------------------
+
+                            WNS                            TNS Failing  TNS Total    WNS Path         Clock-Pair           Inter-Clock  
+From Clock    To Clock      Clock Edges  WNS(ns)  TNS(ns)    Endpoints    Endpoints  Requirement(ns)  Classification       Constraints  
+------------  ------------  -----------  -------  -------  -----------  -----------  ---------------  -------------------  -----------  
+clk_user      clk_user      rise - rise     2.15     0.00            0          260             3.11  Clean                Timed        
+
+
