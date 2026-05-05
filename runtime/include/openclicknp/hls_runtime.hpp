@@ -1,34 +1,45 @@
 // SPDX-License-Identifier: Apache-2.0
 // Vitis HLS runtime header — included by every generated kernel .cpp.
 //
+// The signal RPC interface is implemented as a struct passed by reference
+// with `s_axilite` interface. HLS synthesizes the struct's scalar fields
+// as individual AXI-Lite registers, so each access is a clean register
+// read/write — no pointer arithmetic, no array indexing on a scalar port.
+//
 // We do NOT include hls_stream.h here so this header can compile on a
-// plain Linux toolchain (it gets included by L1 unit tests too). Vitis
-// HLS users are expected to include hls_stream.h themselves before
-// including this file (the generated kernels do).
+// plain Linux toolchain (it gets included by L1 unit tests too).
 #pragma once
 
 #include "openclicknp/flit.hpp"
 
 namespace openclicknp {
 
-// Stub helpers: in HLS these are translated to AXI-Lite poke/peek; in
-// software they are no-ops. The signature is kept simple to keep the
-// generator simple.
-inline bool poll_signal(volatile uint32_t* regs, ClSignal* out) {
-    if (!regs) return false;
-    if ((regs[0] & 0x1) == 0) return false;
-    // Marshal 16x32-bit words → 64-byte ClSignal.
-    uint32_t* p = reinterpret_cast<uint32_t*>(out);
-    for (int i = 0; i < 16; ++i) p[i] = regs[1 + i];
-    regs[0] = 0;   // clear pending
+// Layout matches what `Platform::dispatchSignal` writes from the host.
+// Field order is fixed; the host expects exactly this layout.
+struct SignalIO {
+    uint32_t status;          // bit 0 = pending, bit 1 = response valid
+    uint16_t cmd;
+    uint32_t sparam;
+    uint64_t lparam[7];       // 7 × 8 = 56 bytes
+    uint64_t rsp_lparam[7];
+    uint16_t rsp_cmd;
+    uint32_t rsp_sparam;
+};
+
+inline bool poll_signal(SignalIO& io, ClSignal* out) {
+    if ((io.status & 0x1) == 0) return false;
+    out->cmd     = io.cmd;
+    out->sparam  = io.sparam;
+    for (int i = 0; i < 7; ++i) out->lparam[i] = io.lparam[i];
+    io.status = 0;
     return true;
 }
 
-inline void respond_signal(volatile uint32_t* regs, const ClSignal& s) {
-    if (!regs) return;
-    const uint32_t* p = reinterpret_cast<const uint32_t*>(&s);
-    for (int i = 0; i < 16; ++i) regs[17 + i] = p[i];
-    regs[0] = 0x2;  // response valid
+inline void respond_signal(SignalIO& io, const ClSignal& s) {
+    io.rsp_cmd    = s.cmd;
+    io.rsp_sparam = s.sparam;
+    for (int i = 0; i < 7; ++i) io.rsp_lparam[i] = s.lparam[i];
+    io.status = 0x2;
 }
 
 }  // namespace openclicknp

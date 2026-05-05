@@ -64,7 +64,7 @@ std::string portList(const be::KernelHls& k) {
     }
     if (k.has_signal) {
         comma();
-        os << "volatile uint32_t* signal_regs";
+        os << "openclicknp::SignalIO& sig_io";
     }
     return os.str();
 }
@@ -75,10 +75,13 @@ void emitInterfacePragmas(std::ostream& os, const be::KernelHls& k) {
     for (const auto& p : k.out_ports)
         os << "#pragma HLS INTERFACE axis port=out_" << p.index << "\n";
     if (k.has_signal) {
-        os << "#pragma HLS INTERFACE s_axilite port=signal_regs"
+        // Pass the SignalIO struct as an s_axilite port; HLS synthesizes
+        // each field as its own register (no pointer arithmetic).
+        os << "#pragma HLS INTERFACE s_axilite port=sig_io"
            << " bundle=control offset=" << std::hex << "0x"
            << k.axilite_base << std::dec << "\n";
         os << "#pragma HLS INTERFACE s_axilite port=return bundle=control\n";
+        os << "#pragma HLS DATA_PACK variable=sig_io\n";
     } else if (k.autorun) {
         os << "#pragma HLS INTERFACE ap_ctrl_none port=return\n";
     } else {
@@ -163,7 +166,7 @@ void emitKernel(std::ostream& os, const be::Build& build,
     if (k.has_signal) {
         os << "        // signal poll (host-controlled element)\n";
         os << "        if (!_has_signal) {\n";
-        os << "            _has_signal = openclicknp::poll_signal(signal_regs, &event);\n";
+        os << "            _has_signal = openclicknp::poll_signal(sig_io, &event);\n";
         os << "        }\n";
     }
 
@@ -192,7 +195,7 @@ void emitKernel(std::ostream& os, const be::Build& build,
         std::string line;
         while (std::getline(is, line)) os << "            " << line << "\n";
         os << "            _end_signal: ;\n";
-        os << "            openclicknp::respond_signal(signal_regs, outevent);\n";
+        os << "            openclicknp::respond_signal(sig_io, outevent);\n";
         os << "            _has_signal = false;\n";
         os << "        } else {\n";
     }
@@ -239,11 +242,11 @@ void emitTestbench(std::ostream& os, const be::Build& build,
     for (const auto& p : k.out_ports)
         os << "    hls::stream<openclicknp::flit_t> out_" << p.index << ";\n";
     if (k.has_signal)
-        os << "    static volatile uint32_t signal_regs[32] = {0};\n";
+        os << "    static openclicknp::SignalIO sig_io = {};\n";
 
     // Drive a dummy SOP/EOP flit through input port 1 if any.
     if (!k.in_ports.empty()) {
-        os << "    openclicknp::flit_t f{}; f.data.set(0, 0xCAFEBABEULL); "
+        os << "    openclicknp::flit_t f{}; f.set(0, 0xCAFEBABEULL); "
            << "f.set_sop(true); f.set_eop(true);\n";
         os << "    in_1.write(f);\n";
     }
@@ -252,7 +255,7 @@ void emitTestbench(std::ostream& os, const be::Build& build,
     auto comma = [&]() { if (!first) os << ", "; first = false; };
     for (const auto& p : k.in_ports)  { comma(); os << "in_"  << p.index; }
     for (const auto& p : k.out_ports) { comma(); os << "out_" << p.index; }
-    if (k.has_signal) { comma(); os << "signal_regs"; }
+    if (k.has_signal) { comma(); os << "sig_io"; }
     os << ");\n";
     os << "    return 0;\n}\n";
     (void)build;
