@@ -1,0 +1,2 @@
+add_executable(telemetry_host host.cpp)
+target_link_libraries(telemetry_host PRIVATE openclicknp_runtime)

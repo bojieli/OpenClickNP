@@ -1,0 +1,2 @@
+add_executable(subflow_host host.cpp)
+target_link_libraries(subflow_host PRIVATE openclicknp_runtime)

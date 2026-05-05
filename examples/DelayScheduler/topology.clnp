@@ -1,0 +1,23 @@
+// SPDX-License-Identifier: Apache-2.0
+// Application: DelayScheduler
+import "queues/MinHeap.clnp";
+import "queues/Rake.clnp";
+import "queues/TripleQueue.clnp";
+import "queues/StopAndWaitScheduler.clnp";
+import "queues/RateLimitBlocking.clnp";
+import "queues/RateLimitOneRate.clnp";
+import "core/Pass.clnp";
+
+MinHeap              :: mh
+Rake                 :: rk
+TripleQueue          :: tq (3, 1)
+StopAndWaitScheduler :: saw @
+RateLimitBlocking    :: rlb
+RateLimitOneRate     :: rlo
+Pass                 :: rev
+
+nic_in -> mh -> rk -> [1]tq
+mh -> [2]tq
+mh -> [3]tq
+tq -> saw -> rlb -> rlo -> tor_out
+tor_in -> rev -> nic_out

@@ -1,0 +1,17 @@
+// SPDX-License-Identifier: Apache-2.0
+// Application: TreeAggregator
+import "core/TreeReduce.clnp";
+import "core/Demux.clnp";
+import "core/Pass.clnp";
+
+Demux      :: dmx (1, 4)
+TreeReduce :: tr (4, 1)
+Pass       :: rev
+
+nic_in -> dmx
+dmx[1] -> [1]tr
+dmx[2] -> [2]tr
+dmx[3] -> [3]tr
+dmx[4] -> [4]tr
+tr -> tor_out
+tor_in -> rev -> nic_out

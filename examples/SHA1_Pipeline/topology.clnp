@@ -1,0 +1,16 @@
+// SPDX-License-Identifier: Apache-2.0
+// Application: SHA1_Pipeline
+import "crypto/SHA1_BlockGen.clnp";
+import "crypto/SHA1.clnp";
+import "crypto/RSA_modexp.clnp";
+import "actions/AppendHMAC.clnp";
+import "core/Pass.clnp";
+
+SHA1_BlockGen :: blk @
+SHA1          :: hash
+RSA_modexp    :: rsa
+AppendHMAC    :: hmac
+Pass          :: rev
+
+nic_in -> blk -> hash -> rsa -> hmac -> tor_out
+tor_in -> rev -> nic_out

@@ -1,0 +1,16 @@
+// SPDX-License-Identifier: Apache-2.0
+// Application: StreamMirror
+import "core/Fork.clnp";
+import "core/Capture.clnp";
+import "networking/PktLogger.clnp";
+import "core/Pass.clnp";
+
+Fork      :: fk (1, 2)
+Capture   :: cap @
+PktLogger :: log @
+Pass      :: rev
+
+nic_in -> fk
+fk[1] -> tor_out
+fk[2] => cap -> log -> Drop
+tor_in -> rev -> nic_out

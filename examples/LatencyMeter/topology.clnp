@@ -1,0 +1,19 @@
+// SPDX-License-Identifier: Apache-2.0
+// Application: LatencyMeter
+import "traffic/HWTimeStampPktGen.clnp";
+import "parsers/TimeStamp_Parser.clnp";
+import "testing/LatencyTest.clnp";
+import "traffic/Receiver.clnp";
+import "core/Pass.clnp";
+
+HWTimeStampPktGen :: gen @
+TimeStamp_Parser  :: tsp
+LatencyTest       :: lt (2, 1)
+Receiver          :: rx @
+Pass              :: rev
+
+gen -> tor_out
+nic_in -> tsp[1] -> [1]lt
+tsp[2] -> [2]lt
+lt -> rx
+tor_in -> rev -> nic_out

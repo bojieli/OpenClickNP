@@ -1,0 +1,2 @@
+add_executable(stress_host host.cpp)
+target_link_libraries(stress_host PRIVATE openclicknp_runtime)

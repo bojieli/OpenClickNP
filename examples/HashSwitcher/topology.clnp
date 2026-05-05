@@ -1,0 +1,19 @@
+// SPDX-License-Identifier: Apache-2.0
+// Application: HashSwitcher
+import "lookups/HashDemux.clnp";
+import "lookups/HashTableCache.clnp";
+import "core/Pass.clnp";
+
+HashDemux       :: hd
+HashTableCache  :: htc1 @
+HashTableCache  :: htc2 @
+HashTableCache  :: htc3 @
+HashTableCache  :: htc4 @
+Pass            :: rev
+
+nic_in -> hd
+hd[1] -> htc1 -> tor_out
+hd[2] -> htc2 -> tor_out
+hd[3] -> htc3 -> tor_out
+hd[4] -> htc4 -> tor_out
+tor_in -> rev -> nic_out

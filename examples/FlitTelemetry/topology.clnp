@@ -1,0 +1,32 @@
+// SPDX-License-Identifier: Apache-2.0
+// Application: FlitTelemetry
+import "core/FlitCount.clnp";
+import "core/FlitDemux.clnp";
+import "core/FlitMux.clnp";
+import "core/FlitMetaBuffer.clnp";
+import "core/FlitMetaMux.clnp";
+import "core/FlitMux2RR.clnp";
+import "core/FlitDemuxByMeta.clnp";
+import "core/Pass.clnp";
+
+FlitCount        :: cnt
+FlitDemux        :: fd (1, 2)
+FlitMux          :: fm (2, 1)
+FlitMetaBuffer   :: fmb
+FlitMetaMux      :: fmm (2, 1)
+FlitMux2RR       :: rr (2, 1)
+FlitDemuxByMeta  :: fdmeta (1, 4)
+Pass             :: rev
+
+nic_in -> cnt[1] -> fd
+fd[1] -> [1]fm
+fd[2] -> fmb -> [2]fm
+fm -> [1]rr
+cnt[2] -> [2]rr
+rr -> fdmeta
+fdmeta[1] -> [1]fmm
+fdmeta[2] -> [2]fmm
+fdmeta[3] -> Drop
+fdmeta[4] -> Drop
+fmm -> tor_out
+tor_in -> rev -> nic_out

@@ -1,0 +1,20 @@
+// SPDX-License-Identifier: Apache-2.0
+// Application: HeaderInspector
+import "parsers/VLAN_Parser.clnp";
+import "parsers/IP_Parser.clnp";
+import "parsers/TCP_Parser.clnp";
+import "core/MetaGen.clnp";
+import "core/Pass.clnp";
+
+VLAN_Parser :: vp
+IP_Parser   :: ip
+TCP_Parser  :: tcp
+MetaGen     :: tap
+Pass        :: rev
+
+nic_in -> vp[1] -> ip[1] -> tcp[1] -> tap[1] -> tor_out
+vp[2] -> Drop
+ip[2] -> Drop
+tcp[2] -> Drop
+tap[2] -> Drop
+tor_in -> rev -> nic_out

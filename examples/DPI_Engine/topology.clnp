@@ -1,0 +1,19 @@
+// SPDX-License-Identifier: Apache-2.0
+// Application: DPI_Engine
+import "networking/RegexDispatcher.clnp";
+import "networking/Regex.clnp";
+import "core/Pass.clnp";
+
+RegexDispatcher :: disp
+Regex           :: re1
+Regex           :: re2
+Regex           :: re3
+Regex           :: re4
+Pass            :: rev
+
+nic_in -> disp
+disp[1] -> re1 -> tor_out
+disp[2] -> re2 -> tor_out
+disp[3] -> re3 -> tor_out
+disp[4] -> re4 -> tor_out
+tor_in -> rev -> nic_out

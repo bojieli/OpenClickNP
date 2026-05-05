@@ -1,0 +1,19 @@
+// SPDX-License-Identifier: Apache-2.0
+// Application: WildcardFirewall
+import "lookups/WildcardSeqLookup.clnp";
+import "lookups/SRAM_TCAM.clnp";
+import "actions/DropEnforcer.clnp";
+import "core/Tee.clnp";
+import "core/Pass.clnp";
+
+WildcardSeqLookup :: wcl @
+SRAM_TCAM         :: tcam @
+Tee               :: tap (1, 2)
+DropEnforcer      :: enf (2, 1)
+Pass              :: rev
+
+nic_in -> tap
+tap[1] -> [1]enf
+tap[2] -> wcl -> tcam -> [2]enf
+enf -> tor_out
+tor_in -> rev -> nic_out

@@ -1,0 +1,17 @@
+// SPDX-License-Identifier: Apache-2.0
+// Application: LoadBalancer_v2
+import "core/Mux.clnp";
+import "core/Demux2.clnp";
+import "networking/Firewall_5tuple.clnp";
+import "core/Pass.clnp";
+
+Mux              :: mx
+Demux2           :: dmx (1, 2)
+Firewall_5tuple  :: fw5 @
+Pass             :: rev
+
+nic_in -> dmx
+dmx[1] -> fw5 -> [1]mx
+dmx[2] -> [2]mx
+mx -> tor_out
+tor_in -> rev -> nic_out

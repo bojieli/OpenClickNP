@@ -1,0 +1,12 @@
+// SPDX-License-Identifier: Apache-2.0
+// Application: HierarchicalShaper
+import "queues/ChannelShaping.clnp";
+import "queues/RateLimit.clnp";
+import "core/Pass.clnp";
+
+ChannelShaping :: cs1 @
+RateLimit      :: rl  @
+Pass           :: rev
+
+nic_in -> cs1 -> rl -> tor_out
+tor_in -> rev -> nic_out

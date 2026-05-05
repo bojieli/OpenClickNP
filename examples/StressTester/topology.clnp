@@ -1,0 +1,18 @@
+// SPDX-License-Identifier: Apache-2.0
+// Application: StressTester
+import "core/RandomSource.clnp";
+import "core/CheckSopEop.clnp";
+import "core/FixSopEop.clnp";
+import "traffic/Receiver.clnp";
+import "core/Pass.clnp";
+
+RandomSource :: src
+CheckSopEop  :: chk (1, 2)
+FixSopEop    :: fix
+Receiver     :: rx @
+Pass         :: rev
+
+src -> chk[1] -> fix -> tor_out
+chk[2] -> Drop
+nic_in -> rx
+tor_in -> rev -> nic_out

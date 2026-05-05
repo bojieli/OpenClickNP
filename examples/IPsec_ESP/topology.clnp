@@ -1,0 +1,18 @@
+// SPDX-License-Identifier: Apache-2.0
+// Application: IPsec_ESP
+import "core/Tee.clnp";
+import "crypto/AES_ECB.clnp";
+import "crypto/SHA1.clnp";
+import "actions/AppendHMAC.clnp";
+import "core/Pass.clnp";
+
+Tee        :: split (1, 2)
+AES_ECB    :: enc
+SHA1       :: mac
+AppendHMAC :: hmac
+Pass       :: rev
+
+nic_in -> split
+split[1] -> enc -> hmac -> tor_out
+split[2] -> mac -> Drop
+tor_in -> rev -> nic_out

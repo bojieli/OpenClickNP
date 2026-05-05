@@ -1,0 +1,2 @@
+add_executable(ipsec_esp_host host.cpp)
+target_link_libraries(ipsec_esp_host PRIVATE openclicknp_runtime)

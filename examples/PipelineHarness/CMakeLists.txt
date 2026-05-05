@@ -1,0 +1,2 @@
+add_executable(harness_host host.cpp)
+target_link_libraries(harness_host PRIVATE openclicknp_runtime)

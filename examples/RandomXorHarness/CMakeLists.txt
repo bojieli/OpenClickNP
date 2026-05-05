@@ -1,0 +1,2 @@
+add_executable(rand_xor_host host.cpp)
+target_link_libraries(rand_xor_host PRIVATE openclicknp_runtime)

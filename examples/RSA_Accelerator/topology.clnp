@@ -1,0 +1,27 @@
+// SPDX-License-Identifier: Apache-2.0
+// Application: RSA_Accelerator
+import "crypto/Mult1024.clnp";
+import "crypto/Add2048.clnp";
+import "crypto/Subtract1024.clnp";
+import "crypto/Montgomery.clnp";
+import "core/Tee.clnp";
+import "core/Pass.clnp";
+
+Tee        :: split (1, 2)
+Mult1024   :: mul (2, 1)
+Add2048    :: add (2, 1)
+Subtract1024 :: sub (2, 1)
+Montgomery :: mont (2, 1)
+Pass       :: rev
+
+host_in -> split
+split[1] -> [1]mul
+split[2] -> [2]mul
+mul -> [1]mont
+mul -> [2]mont
+mont -> [1]add
+mont -> [2]add
+add -> [1]sub
+add -> [2]sub
+sub -> host_out
+tor_in -> rev -> nic_out

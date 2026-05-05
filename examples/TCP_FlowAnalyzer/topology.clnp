@@ -1,0 +1,20 @@
+// SPDX-License-Identifier: Apache-2.0
+// Application: TCP_FlowAnalyzer
+import "parsers/TCP_Parser.clnp";
+import "parsers/UDP_Parser.clnp";
+import "lookups/CuckooHash.clnp";
+import "core/Pass.clnp";
+import "core/Tee.clnp";
+
+Tee        :: tee
+TCP_Parser :: tcpp
+UDP_Parser :: udpp
+CuckooHash :: ck @
+Pass       :: rev
+
+nic_in -> tee
+tee[1] -> tcpp[1] -> tor_out
+tcpp[2] -> [1]ck -> Drop
+tee[2] -> udpp[1] -> Drop
+udpp[2] -> Drop
+tor_in -> rev -> nic_out

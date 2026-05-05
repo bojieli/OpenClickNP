@@ -1,0 +1,2 @@
+add_executable(latency_host host.cpp)
+target_link_libraries(latency_host PRIVATE openclicknp_runtime)

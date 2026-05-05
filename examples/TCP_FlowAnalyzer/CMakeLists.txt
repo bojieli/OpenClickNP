@@ -1,0 +1,2 @@
+add_executable(tcp_flow_host host.cpp)
+target_link_libraries(tcp_flow_host PRIVATE openclicknp_runtime)

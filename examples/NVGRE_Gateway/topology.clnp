@@ -1,0 +1,20 @@
+// SPDX-License-Identifier: Apache-2.0
+// Application: NVGRE_Gateway
+import "parsers/NVGRE_Parser.clnp";
+import "actions/NVGRE_Match_Pre.clnp";
+import "actions/NVGRE_Match_Post.clnp";
+import "traffic/NVGRE_Gen.clnp";
+import "core/Pass.clnp";
+
+NVGRE_Parser     :: np
+NVGRE_Match_Pre  :: pre
+NVGRE_Match_Post :: post (2, 1)
+NVGRE_Gen        :: gen
+Pass             :: rev
+
+nic_in -> np[1] -> pre[1] -> [1]post
+pre[2] -> [2]post
+post -> tor_out
+np[2] -> Drop
+gen -> Drop
+tor_in -> rev -> nic_out

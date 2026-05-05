@@ -1,0 +1,26 @@
+// SPDX-License-Identifier: Apache-2.0
+// Application: DiagnosticTap
+import "core/DropElem.clnp";
+import "core/Dump.clnp";
+import "networking/Forwarder.clnp";
+import "testing/FlowTupleTest.clnp";
+import "testing/NoEchoLatencyTest.clnp";
+import "testing/TestOnSoftware.clnp";
+import "testing/RandomAccessGmemTest.clnp";
+import "core/Pass.clnp";
+
+DropElem            :: de @
+Dump                :: du @
+Forwarder           :: fwd (2, 2)
+FlowTupleTest       :: ftt (1, 2)
+NoEchoLatencyTest   :: nelt
+TestOnSoftware      :: tos
+RandomAccessGmemTest:: ragt
+Pass                :: rev
+
+nic_in -> ftt[1] -> nelt -> tos -> ragt -> tor_out
+ftt[2] -> du
+nic_in -> [1]fwd
+fwd[2] -> de
+fwd[1] -> Drop
+tor_in -> rev -> nic_out

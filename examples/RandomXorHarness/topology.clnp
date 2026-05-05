@@ -1,0 +1,23 @@
+// SPDX-License-Identifier: Apache-2.0
+// Application: RandomXorHarness
+import "core/Rand.clnp";
+import "core/InfiniteSource.clnp";
+import "core/ZeroSource.clnp";
+import "testing/XorInputs.clnp";
+import "testing/TestRandom.clnp";
+import "core/TestDumper.clnp";
+import "core/Pass.clnp";
+
+InfiniteSource :: src
+Rand           :: rnd
+XorInputs      :: xor (2, 1)
+TestRandom     :: trand
+TestDumper     :: dump @
+ZeroSource     :: zero
+Pass           :: rev
+
+src -> rnd -> [1]xor
+zero -> [2]xor
+xor -> dump -> Drop
+trand -> Drop
+tor_in -> rev -> nic_out

@@ -1,0 +1,13 @@
+// SPDX-License-Identifier: Apache-2.0
+// Application: SubflowBuffer
+import "core/MultiFIFO.clnp";
+import "queues/FlitScheduler.clnp";
+import "core/Pass.clnp";
+
+MultiFIFO     :: buf
+FlitScheduler :: sched (4, 1)
+Pass          :: rev
+
+nic_in -> buf -> [1]sched
+sched -> tor_out
+tor_in -> rev -> nic_out

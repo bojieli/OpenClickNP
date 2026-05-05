@@ -1,0 +1,2 @@
+add_executable(ecmp_router_host host.cpp)
+target_link_libraries(ecmp_router_host PRIVATE openclicknp_runtime)

@@ -1,0 +1,17 @@
+// SPDX-License-Identifier: Apache-2.0
+// Application: ACL_TCAM
+import "lookups/RegTCAM.clnp";
+import "actions/DropEnforcer.clnp";
+import "core/Tee.clnp";
+import "core/Pass.clnp";
+
+RegTCAM      :: acl @
+Tee          :: tap (1, 2)
+DropEnforcer :: enf (2, 1)
+Pass         :: rev
+
+nic_in -> tap
+tap[1] -> [1]enf
+tap[2] -> acl -> [2]enf
+enf -> tor_out
+tor_in -> rev -> nic_out

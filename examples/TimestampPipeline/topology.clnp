@@ -1,0 +1,23 @@
+// SPDX-License-Identifier: Apache-2.0
+// Application: TimestampPipeline
+import "parsers/TimeStamp_PktGen.clnp";
+import "traffic/Sender_CreditPktGen.clnp";
+import "traffic/Credit_PktGen.clnp";
+import "traffic/RoCE_Gen.clnp";
+import "traffic/TimerDriftPktGen.clnp";
+import "core/Pass.clnp";
+
+TimeStamp_PktGen     :: tspg
+Sender_CreditPktGen  :: sender
+Credit_PktGen        :: credit @
+RoCE_Gen             :: roce
+TimerDriftPktGen     :: drift
+Pass                 :: rev
+
+tspg   -> Drop
+sender -> Drop
+credit -> Drop
+roce   -> Drop
+drift  -> Drop
+nic_in -> tor_out
+tor_in -> rev -> nic_out

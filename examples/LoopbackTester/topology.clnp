@@ -1,0 +1,17 @@
+// SPDX-License-Identifier: Apache-2.0
+// Application: LoopbackTester
+import "traffic/PacketGen.clnp";
+import "core/AddLatency.clnp";
+import "testing/DelayTester.clnp";
+import "traffic/Receiver.clnp";
+import "core/Pass.clnp";
+
+PacketGen   :: gen
+AddLatency  :: lat
+DelayTester :: dt @
+Receiver    :: rx @
+Pass        :: rev
+
+gen -> lat -> dt -> rx
+tor_in -> rev -> nic_out
+nic_in -> Drop

@@ -1,0 +1,2 @@
+add_executable(shaper_host host.cpp)
+target_link_libraries(shaper_host PRIVATE openclicknp_runtime)

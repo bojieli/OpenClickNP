@@ -1,0 +1,2 @@
+add_executable(aes_pipeline_host host.cpp)
+target_link_libraries(aes_pipeline_host PRIVATE openclicknp_runtime)

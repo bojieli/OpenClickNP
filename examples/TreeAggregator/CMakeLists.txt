@@ -1,0 +1,2 @@
+add_executable(tree_agg_host host.cpp)
+target_link_libraries(tree_agg_host PRIVATE openclicknp_runtime)

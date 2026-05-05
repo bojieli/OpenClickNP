@@ -1,0 +1,22 @@
+// SPDX-License-Identifier: Apache-2.0
+// Application: WFQ_Scheduler
+import "queues/PriorityQueueSystolic.clnp";
+import "queues/FlitScheduler.clnp";
+import "core/Demux.clnp";
+import "core/Pass.clnp";
+
+Demux                 :: dmx (1, 4)
+PriorityQueueSystolic :: q1
+PriorityQueueSystolic :: q2
+PriorityQueueSystolic :: q3
+PriorityQueueSystolic :: q4
+FlitScheduler         :: sched (4, 1)
+Pass                  :: rev
+
+nic_in -> dmx
+dmx[1] -> q1 -> [1]sched
+dmx[2] -> q2 -> [2]sched
+dmx[3] -> q3 -> [3]sched
+dmx[4] -> q4 -> [4]sched
+sched -> tor_out
+tor_in -> rev -> nic_out

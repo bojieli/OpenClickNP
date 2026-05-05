@@ -1,0 +1,2 @@
+add_executable(loopback_host host.cpp)
+target_link_libraries(loopback_host PRIVATE openclicknp_runtime)

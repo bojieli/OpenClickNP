@@ -1,0 +1,27 @@
+// SPDX-License-Identifier: Apache-2.0
+// Application: ECMP_Router
+import "lookups/GmemTableRead.clnp";
+import "lookups/GmemTableWrite.clnp";
+import "lookups/GmemFlowLookup.clnp";
+import "networking/NexthopAlloc.clnp";
+import "actions/AllocResultAdapter.clnp";
+import "networking/LB_NexthopTable.clnp";
+import "core/Tee.clnp";
+import "core/Pass.clnp";
+
+GmemFlowLookup  :: lookup @
+NexthopAlloc    :: alloc
+AllocResultAdapter :: ara
+LB_NexthopTable :: lb @
+GmemTableRead   :: rd @
+GmemTableWrite  :: wr @
+Tee             :: tap (1, 2)
+Pass            :: rev
+
+nic_in -> tap
+tap[1] -> lookup -> alloc -> [1]ara
+ara[1] -> lb -> tor_out
+ara[2] -> Drop
+tap[2] -> rd -> Drop
+host_in -> wr
+tor_in -> rev -> nic_out

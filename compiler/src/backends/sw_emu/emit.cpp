@@ -58,7 +58,8 @@ void emitKernelFunc(std::ostream& os, const be::KernelHls& k) {
         os << "    };\n";
         os << "}\n";
     }
-    os << "static void kernel_" << k.name << "(\n";
+    // External linkage so behavioral unit tests can call individual kernels.
+    os << "extern \"C\" void kernel_" << k.name << "(\n";
     bool first = true;
     auto comma = [&]() { if (!first) os << ",\n"; first = false; };
     for (const auto& p : k.in_ports) {

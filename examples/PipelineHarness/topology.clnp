@@ -1,0 +1,30 @@
+// SPDX-License-Identifier: Apache-2.0
+// Application: PipelineHarness
+import "core/PassThrough.clnp";
+import "core/StagingReg.clnp";
+import "core/Sync.clnp";
+import "core/p2s.clnp";
+import "core/s2p.clnp";
+import "core/PacketBuffer.clnp";
+import "core/Mem_to_channel.clnp";
+import "core/Clock.clnp";
+import "core/Idle.clnp";
+import "core/Pass.clnp";
+
+PassThrough    :: pt1
+StagingReg     :: sr1
+Sync           :: sync (2, 1)
+p2s            :: ps (2, 1)
+s2p            :: sp (1, 2)
+PacketBuffer   :: pb
+Mem_to_channel :: mc
+Clock          :: clk @
+Pass           :: rev
+
+nic_in -> pt1 -> sr1 -> [1]sync
+mc -> [2]sync
+sync -> sp
+sp[1] -> [1]ps
+sp[2] -> [2]ps
+ps -> pb -> tor_out
+tor_in -> rev -> nic_out

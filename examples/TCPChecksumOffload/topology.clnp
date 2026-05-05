@@ -1,0 +1,22 @@
+// SPDX-License-Identifier: Apache-2.0
+// Application: TCPChecksumOffload
+import "actions/TCPChecksum.clnp";
+import "actions/PacketModifier.clnp";
+import "parsers/TimeStamp_Parser.clnp";
+import "parsers/RevParser.clnp";
+import "parsers/PriorityParser.clnp";
+import "core/Pass.clnp";
+
+TCPChecksum      :: tcp
+PacketModifier   :: pm (2, 1)
+TimeStamp_Parser :: ts
+RevParser        :: rp
+PriorityParser   :: pp
+Pass             :: rev
+
+nic_in -> ts[1] -> rp -> pp[1] -> tcp[1] -> [1]pm
+tcp[2] -> [2]pm
+ts[2] -> Drop
+pp[2] -> Drop
+pm -> tor_out
+tor_in -> rev -> nic_out

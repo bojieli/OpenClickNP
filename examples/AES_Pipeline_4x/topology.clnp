@@ -1,0 +1,26 @@
+// SPDX-License-Identifier: Apache-2.0
+// Application: AES_Pipeline_4x
+import "crypto/AES_Dispatch.clnp";
+import "crypto/AES_ECB.clnp";
+import "crypto/AES_Merge.clnp";
+import "crypto/AES_LastFlitMux.clnp";
+import "core/Pass.clnp";
+
+AES_Dispatch    :: disp (1, 4)
+AES_ECB         :: enc1
+AES_ECB         :: enc2
+AES_ECB         :: enc3
+AES_ECB         :: enc4
+AES_Merge       :: merge (4, 1)
+AES_LastFlitMux :: lastmux (2, 1)
+Pass            :: rev
+
+nic_in -> disp
+disp[1] -> enc1 -> [1]merge
+disp[2] -> enc2 -> [2]merge
+disp[3] -> enc3 -> [3]merge
+disp[4] -> enc4 -> [4]merge
+merge -> [1]lastmux
+nic_in -> [2]lastmux
+lastmux -> tor_out
+tor_in -> rev -> nic_out

@@ -1,0 +1,2 @@
+add_executable(trafgen_host host.cpp)
+target_link_libraries(trafgen_host PRIVATE openclicknp_runtime)

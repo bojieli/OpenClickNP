@@ -1,0 +1,2 @@
+add_executable(hash_sw_host host.cpp)
+target_link_libraries(hash_sw_host PRIVATE openclicknp_runtime)
