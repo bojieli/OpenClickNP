@@ -16,7 +16,7 @@ scratch on the Xilinx 2025.2 toolchain targeting the Alveo U50 die
 | Tests in CI | **10** (100% pass) |
 | Elements with real Vitis HLS numbers | **123 / 123** |
 | Applications fully P&R'd on real U50 die | **16 / 16** |
-| Apps with WNS ≥ 0 at 322 MHz | **15 / 16** |
+| Apps with WNS ≥ 0 at 322 MHz | **16 / 16** ✓ |
 | Apps with WHS ≥ 0 (hold met) | **16 / 16** |
 | Apps with CDC violations | **0 / 16** |
 
@@ -77,22 +77,24 @@ flow:              vitis_hls -> Vivado synth -> opt -> place -> route
 | PassTraffic | 2 | 3,290 | 7,394 | 0 | 4 | +0.258 | +0.039 | 0 |
 | PFabric | 2 | 2,995 | 6,464 | 0 | 33 | +0.481 | +0.041 | 0 |
 | PortScanDetect | 3 | 4,928 | 10,683 | 0 | 2 | +0.420 | +0.032 | 0 |
-| **RateLimiter** | 2 | 3,719 | 7,570 | 0 | 2 | **−0.207** | +0.041 | 0 |
+| RateLimiter | 2 | 3,616 | 7,490 | 0 | 2 | **+0.545** | +0.041 | 0 |
 | RoCE_Gateway | 3 | 4,815 | 10,018 | 0 | 2 | +0.232 | +0.041 | 0 |
 | VLAN_Bridge | 3 | 4,251 | 9,215 | 0 | 0 | +0.545 | +0.039 | 0 |
 
 ### Highlights
 
-- **15 of 16 applications close timing positively** at the
-  322.265625 MHz user clock, with WNS slack ranging from +0.072 ns
-  (Firewall) up to +0.545 ns (PacketLogger / NVGRE_Decap / etc.).
+- **All 16 applications close timing positively** at the 322.265625 MHz
+  user clock, with WNS slack ranging from +0.072 ns (Firewall) up to
+  +0.545 ns (PacketLogger / NVGRE_Decap / RateLimiter / others).
 - **All 16 close hold timing** (WHS ≥ 0).
 - **No application has any critical or warning CDC violation** in
   Vivado's `report_cdc` output.
-- **RateLimiter shows WNS = −0.207 ns** — a real timing violation
-  surfaced by the P&R flow. Either bump the clock period to ~3.3 ns
-  (≈ 303 MHz) or split the token-bucket update into two pipeline
-  stages.
+- **RateLimiter** initially showed WNS = −0.207 ns. The P&R flow
+  surfaced the violation; the codegen-source `.clnp` was rewritten
+  with a registered intermediate sum, narrower types, and a 3-stage
+  pipeline (refill → saturate → consume). Re-running gives
+  WNS = **+0.545 ns**, an 0.752 ns improvement (≈ 24 % of the clock
+  period).
 - The largest application (L4LoadBalancer at 9,788 LUTs, 18,293 FFs)
   uses **about 1.1% of the U50's 871 k CLB LUTs** and **1.0% of its
   1.74 M registers** — comfortably small.
@@ -190,9 +192,10 @@ All reports land in `eval/reports/`:
   `scripts/build/implement.sh` pipeline is wired for that step and
   will produce a deployable `.xclbin` once the platform package is
   in place.
-- **RateLimiter timing closure.** WNS = −0.207 ns flags a real timing
-  violation that needs either a clock bump or one extra pipeline
-  stage.
+- ~~**RateLimiter timing closure.** WNS = −0.207 ns flags a real
+  timing violation that needs either a clock bump or one extra
+  pipeline stage.~~ **Fixed.** Pipelined the token-bucket update; new
+  WNS = +0.545 ns at the same 322 MHz target.
 - **`Pass` synthesizes to ~2 k LUTs** in the current codegen because
   every input/output port carries a full per-port-mask handshake. A
   hand-coded equivalent is ~50 LUTs. Codegen optimization is on the

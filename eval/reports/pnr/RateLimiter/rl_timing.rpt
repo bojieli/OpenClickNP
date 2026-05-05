@@ -1,7 +1,7 @@
 Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2025 Advanced Micro Devices, Inc. All Rights Reserved.
 --------------------------------------------------------------------------------------------------------------------------------------------------
 | Tool Version      : Vivado v.2025.2 (lin64) Build 6299465 Fri Nov 14 12:34:56 MST 2025
-| Date              : Tue May  5 11:26:05 2026
+| Date              : Tue May  5 13:56:56 2026
 | Host              : ubuntu running 64-bit Ubuntu 22.04.5 LTS
 | Command           : report_timing_summary -file /home/ubuntu/OpenClickNP/eval/reports/pnr/RateLimiter/rl_timing.rpt
 | Design            : rl
@@ -139,10 +139,10 @@ Table of Contents
 
     WNS(ns)      TNS(ns)  TNS Failing Endpoints  TNS Total Endpoints      WHS(ns)      THS(ns)  THS Failing Endpoints  THS Total Endpoints     WPWS(ns)     TPWS(ns)  TPWS Failing Endpoints  TPWS Total Endpoints  
     -------      -------  ---------------------  -------------------      -------      -------  ---------------------  -------------------     --------     --------  ----------------------  --------------------  
-     -0.207       -3.649                     28                 7972        0.042        0.000                      0                 7972        1.011        0.000                       0                  3952  
+      0.678        0.000                      0                 7787        0.042        0.000                      0                 7787        1.011        0.000                       0                  3872  
 
 
-Timing constraints are not met.
+All user specified timing constraints are met.
 
 
 ------------------------------------------------------------------------------------------------
@@ -162,7 +162,7 @@ ap_clk  {0.000 1.553}        3.106           321.958
 
 Clock             WNS(ns)      TNS(ns)  TNS Failing Endpoints  TNS Total Endpoints      WHS(ns)      THS(ns)  THS Failing Endpoints  THS Total Endpoints     WPWS(ns)     TPWS(ns)  TPWS Failing Endpoints  TPWS Total Endpoints  
 -----             -------      -------  ---------------------  -------------------      -------      -------  ---------------------  -------------------     --------     --------  ----------------------  --------------------  
-ap_clk             -0.207       -3.649                     28                 7972        0.042        0.000                      0                 7972        1.011        0.000                       0                  3952  
+ap_clk              0.678        0.000                      0                 7787        0.042        0.000                      0                 7787        1.011        0.000                       0                  3872  
 
 
 ------------------------------------------------------------------------------------------------
@@ -193,7 +193,7 @@ Path Group    From Clock    To Clock          WNS(ns)      TNS(ns)  TNS Failing 
 From Clock:  ap_clk
   To Clock:  ap_clk
 
-Setup :           28  Failing Endpoints,  Worst Slack       -0.207ns,  Total Violation       -3.649ns
+Setup :            0  Failing Endpoints,  Worst Slack        0.678ns,  Total Violation        0.000ns
 Hold  :            0  Failing Endpoints,  Worst Slack        0.042ns,  Total Violation        0.000ns
 PW    :            0  Failing Endpoints,  Worst Slack        1.011ns,  Total Violation        0.000ns
 ---------------------------------------------------------------------------------------------------
@@ -201,18 +201,18 @@ PW    :            0  Failing Endpoints,  Worst Slack        1.011ns,  Total Vio
 
 Max Delay Paths
 --------------------------------------------------------------------------------------
-Slack (VIOLATED) :        -0.207ns  (required time - arrival time)
-  Source:                 grp_rl_Pipeline_VITIS_LOOP_63_1_fu_102/empty_21_fu_358_reg[5]/C
+Slack (MET) :             0.678ns  (required time - arrival time)
+  Source:                 regslice_both_in_1_U/ack_in_t_reg/C
                             (rising edge-triggered cell FDRE clocked by ap_clk  {rise@0.000ns fall@1.553ns period=3.106ns})
-  Destination:            grp_rl_Pipeline_VITIS_LOOP_63_1_fu_102/empty_23_fu_886_reg[28]/D
+  Destination:            regslice_both_in_1_U/data_p2_reg[466]/CE
                             (rising edge-triggered cell FDRE clocked by ap_clk  {rise@0.000ns fall@1.553ns period=3.106ns})
   Path Group:             ap_clk
   Path Type:              Setup (Max at Slow Process Corner)
   Requirement:            3.106ns  (ap_clk rise@3.106ns - ap_clk rise@0.000ns)
-  Data Path Delay:        3.293ns  (logic 1.425ns (43.277%)  route 1.868ns (56.723%))
-  Logic Levels:           15  (CARRY8=10 LUT2=2 LUT3=1 LUT4=1 LUT6=1)
-  Clock Path Skew:        -0.010ns (DCD - SCD + CPR)
-    Destination Clock Delay (DCD):    0.020ns = ( 3.126 - 3.106 ) 
+  Data Path Delay:        2.323ns  (logic 0.228ns (9.814%)  route 2.095ns (90.186%))
+  Logic Levels:           1  (LUT2=1)
+  Clock Path Skew:        -0.009ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.021ns = ( 3.127 - 3.106 ) 
     Source Clock Delay      (SCD):    0.030ns
     Clock Pessimism Removal (CPR):    0.000ns
   Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
@@ -225,73 +225,31 @@ Slack (VIOLATED) :        -0.207ns  (required time - arrival time)
   -------------------------------------------------------------------    -------------------
                          (clock ap_clk rise edge)     0.000     0.000 r  
                                                       0.000     0.000 r  ap_clk (IN)
-                         net (fo=3951, unset)         0.030     0.030    grp_rl_Pipeline_VITIS_LOOP_63_1_fu_102/ap_clk
-    SLICE_X154Y416       FDRE                                         r  grp_rl_Pipeline_VITIS_LOOP_63_1_fu_102/empty_21_fu_358_reg[5]/C
+                         net (fo=3871, unset)         0.030     0.030    regslice_both_in_1_U/ap_clk
+    SLICE_X97Y399        FDRE                                         r  regslice_both_in_1_U/ack_in_t_reg/C
   -------------------------------------------------------------------    -------------------
-    SLICE_X154Y416       FDRE (Prop_AFF_SLICEM_C_Q)
-                                                      0.077     0.107 r  grp_rl_Pipeline_VITIS_LOOP_63_1_fu_102/empty_21_fu_358_reg[5]/Q
-                         net (fo=1, routed)           0.265     0.372    grp_rl_Pipeline_VITIS_LOOP_63_1_fu_102/empty_21_fu_358_reg_n_0_[5]
-    SLICE_X155Y416       LUT2 (Prop_F6LUT_SLICEL_I1_O)
-                                                      0.035     0.407 r  grp_rl_Pipeline_VITIS_LOOP_63_1_fu_102/empty_22_fu_882[7]_i_4/O
-                         net (fo=1, routed)           0.011     0.418    grp_rl_Pipeline_VITIS_LOOP_63_1_fu_102/empty_22_fu_882[7]_i_4_n_0
-    SLICE_X155Y416       CARRY8 (Prop_CARRY8_SLICEL_S[5]_CO[7])
-                                                      0.155     0.573 r  grp_rl_Pipeline_VITIS_LOOP_63_1_fu_102/empty_22_fu_882_reg[7]_i_1/CO[7]
-                         net (fo=1, routed)           0.026     0.599    grp_rl_Pipeline_VITIS_LOOP_63_1_fu_102/empty_22_fu_882_reg[7]_i_1_n_0
-    SLICE_X155Y417       CARRY8 (Prop_CARRY8_SLICEL_CI_CO[7])
-                                                      0.015     0.614 r  grp_rl_Pipeline_VITIS_LOOP_63_1_fu_102/empty_22_fu_882_reg[15]_i_2/CO[7]
-                         net (fo=1, routed)           0.026     0.640    grp_rl_Pipeline_VITIS_LOOP_63_1_fu_102/empty_22_fu_882_reg[15]_i_2_n_0
-    SLICE_X155Y418       CARRY8 (Prop_CARRY8_SLICEL_CI_O[1])
-                                                      0.076     0.716 r  grp_rl_Pipeline_VITIS_LOOP_63_1_fu_102/empty_23_fu_886_reg[7]_i_3/O[1]
-                         net (fo=2, routed)           0.265     0.981    grp_rl_Pipeline_VITIS_LOOP_63_1_fu_102/zext_ln100_fu_3482_p1[1]
-    SLICE_X156Y418       LUT2 (Prop_B6LUT_SLICEM_I0_O)
-                                                      0.052     1.033 r  grp_rl_Pipeline_VITIS_LOOP_63_1_fu_102/empty_23_fu_886[7]_i_10/O
-                         net (fo=1, routed)           0.016     1.049    grp_rl_Pipeline_VITIS_LOOP_63_1_fu_102/empty_23_fu_886[7]_i_10_n_0
-    SLICE_X156Y418       CARRY8 (Prop_CARRY8_SLICEM_S[1]_CO[7])
-                                                      0.190     1.239 r  grp_rl_Pipeline_VITIS_LOOP_63_1_fu_102/empty_23_fu_886_reg[7]_i_2/CO[7]
-                         net (fo=1, routed)           0.026     1.265    grp_rl_Pipeline_VITIS_LOOP_63_1_fu_102/empty_23_fu_886_reg[7]_i_2_n_0
-    SLICE_X156Y419       CARRY8 (Prop_CARRY8_SLICEM_CI_CO[7])
-                                                      0.015     1.280 r  grp_rl_Pipeline_VITIS_LOOP_63_1_fu_102/empty_23_fu_886_reg[15]_i_2/CO[7]
-                         net (fo=1, routed)           0.026     1.306    grp_rl_Pipeline_VITIS_LOOP_63_1_fu_102/empty_23_fu_886_reg[15]_i_2_n_0
-    SLICE_X156Y420       CARRY8 (Prop_CARRY8_SLICEM_CI_O[1])
-                                                      0.076     1.382 r  grp_rl_Pipeline_VITIS_LOOP_63_1_fu_102/empty_23_fu_886_reg[23]_i_2/O[1]
-                         net (fo=6, routed)           0.283     1.665    grp_rl_Pipeline_VITIS_LOOP_63_1_fu_102/add_ln100_fu_3486_p2[17]
-    SLICE_X155Y421       LUT4 (Prop_A6LUT_SLICEL_I1_O)
-                                                      0.098     1.763 r  grp_rl_Pipeline_VITIS_LOOP_63_1_fu_102/empty_23_fu_886[31]_i_28/O
-                         net (fo=1, routed)           0.009     1.772    grp_rl_Pipeline_VITIS_LOOP_63_1_fu_102/empty_23_fu_886[31]_i_28_n_0
-    SLICE_X155Y421       CARRY8 (Prop_CARRY8_SLICEL_S[0]_CO[7])
-                                                      0.197     1.969 r  grp_rl_Pipeline_VITIS_LOOP_63_1_fu_102/empty_23_fu_886_reg[31]_i_4/CO[7]
-                         net (fo=108, routed)         0.465     2.434    grp_rl_Pipeline_VITIS_LOOP_63_1_fu_102/empty_23_fu_886_reg[31]_i_4_n_0
-    SLICE_X154Y419       LUT3 (Prop_F6LUT_SLICEM_I1_O)
-                                                      0.051     2.485 r  grp_rl_Pipeline_VITIS_LOOP_63_1_fu_102/empty_23_fu_886[12]_i_12/O
-                         net (fo=1, routed)           0.022     2.507    grp_rl_Pipeline_VITIS_LOOP_63_1_fu_102/empty_23_fu_886[12]_i_12_n_0
-    SLICE_X154Y419       CARRY8 (Prop_CARRY8_SLICEM_S[5]_CO[7])
-                                                      0.159     2.666 r  grp_rl_Pipeline_VITIS_LOOP_63_1_fu_102/empty_23_fu_886_reg[12]_i_2/CO[7]
-                         net (fo=1, routed)           0.026     2.692    grp_rl_Pipeline_VITIS_LOOP_63_1_fu_102/empty_23_fu_886_reg[12]_i_2_n_0
-    SLICE_X154Y420       CARRY8 (Prop_CARRY8_SLICEM_CI_CO[7])
-                                                      0.015     2.707 r  grp_rl_Pipeline_VITIS_LOOP_63_1_fu_102/empty_23_fu_886_reg[20]_i_2/CO[7]
-                         net (fo=1, routed)           0.026     2.733    grp_rl_Pipeline_VITIS_LOOP_63_1_fu_102/empty_23_fu_886_reg[20]_i_2_n_0
-    SLICE_X154Y421       CARRY8 (Prop_CARRY8_SLICEM_CI_O[7])
-                                                      0.116     2.849 r  grp_rl_Pipeline_VITIS_LOOP_63_1_fu_102/empty_23_fu_886_reg[28]_i_2/O[7]
-                         net (fo=1, routed)           0.328     3.177    grp_rl_Pipeline_VITIS_LOOP_63_1_fu_102/add_ln108_fu_3580_p2[28]
-    SLICE_X155Y422       LUT6 (Prop_A6LUT_SLICEL_I0_O)
-                                                      0.098     3.275 r  grp_rl_Pipeline_VITIS_LOOP_63_1_fu_102/empty_23_fu_886[28]_i_1/O
-                         net (fo=1, routed)           0.048     3.323    grp_rl_Pipeline_VITIS_LOOP_63_1_fu_102/empty_23_fu_886[28]_i_1_n_0
-    SLICE_X155Y422       FDRE                                         r  grp_rl_Pipeline_VITIS_LOOP_63_1_fu_102/empty_23_fu_886_reg[28]/D
+    SLICE_X97Y399        FDRE (Prop_DFF_SLICEM_C_Q)
+                                                      0.078     0.108 r  regslice_both_in_1_U/ack_in_t_reg/Q
+                         net (fo=4, routed)           0.124     0.232    regslice_both_in_1_U/ack_in_t_reg_0
+    SLICE_X97Y399        LUT2 (Prop_G6LUT_SLICEM_I1_O)
+                                                      0.150     0.382 r  regslice_both_in_1_U/data_p2[511]_i_1/O
+                         net (fo=512, routed)         1.971     2.353    regslice_both_in_1_U/load_p2
+    SLICE_X95Y388        FDRE                                         r  regslice_both_in_1_U/data_p2_reg[466]/CE
   -------------------------------------------------------------------    -------------------
 
                          (clock ap_clk rise edge)     3.106     3.106 r  
                                                       0.000     3.106 r  ap_clk (IN)
-                         net (fo=3951, unset)         0.020     3.126    grp_rl_Pipeline_VITIS_LOOP_63_1_fu_102/ap_clk
-    SLICE_X155Y422       FDRE                                         r  grp_rl_Pipeline_VITIS_LOOP_63_1_fu_102/empty_23_fu_886_reg[28]/C
-                         clock pessimism              0.000     3.126    
-                         clock uncertainty           -0.035     3.091    
-    SLICE_X155Y422       FDRE (Setup_AFF_SLICEL_C_D)
-                                                      0.025     3.116    grp_rl_Pipeline_VITIS_LOOP_63_1_fu_102/empty_23_fu_886_reg[28]
+                         net (fo=3871, unset)         0.021     3.127    regslice_both_in_1_U/ap_clk
+    SLICE_X95Y388        FDRE                                         r  regslice_both_in_1_U/data_p2_reg[466]/C
+                         clock pessimism              0.000     3.127    
+                         clock uncertainty           -0.035     3.092    
+    SLICE_X95Y388        FDRE (Setup_DFF2_SLICEM_C_CE)
+                                                     -0.060     3.032    regslice_both_in_1_U/data_p2_reg[466]
   -------------------------------------------------------------------
-                         required time                          3.116    
-                         arrival time                          -3.323    
+                         required time                          3.032    
+                         arrival time                          -2.353    
   -------------------------------------------------------------------
-                         slack                                 -0.207    
+                         slack                                  0.678    
 
 
 
@@ -300,46 +258,43 @@ Slack (VIOLATED) :        -0.207ns  (required time - arrival time)
 Min Delay Paths
 --------------------------------------------------------------------------------------
 Slack (MET) :             0.042ns  (arrival time - required time)
-  Source:                 regslice_both_in_1_U/ack_in_t_reg/C
+  Source:                 regslice_both_in_1_U/data_p1_reg[143]/C
                             (rising edge-triggered cell FDRE clocked by ap_clk  {rise@0.000ns fall@1.553ns period=3.106ns})
-  Destination:            regslice_both_in_1_U/ack_in_t_reg/D
+  Destination:            grp_rl_Pipeline_VITIS_LOOP_73_1_fu_106/p_0_0_17686_fu_722_reg[7]/D
                             (rising edge-triggered cell FDRE clocked by ap_clk  {rise@0.000ns fall@1.553ns period=3.106ns})
   Path Group:             ap_clk
   Path Type:              Hold (Min at Fast Process Corner)
   Requirement:            0.000ns  (ap_clk rise@0.000ns - ap_clk rise@0.000ns)
-  Data Path Delay:        0.094ns  (logic 0.053ns (56.474%)  route 0.041ns (43.526%))
-  Logic Levels:           1  (LUT6=1)
+  Data Path Delay:        0.095ns  (logic 0.037ns (38.947%)  route 0.058ns (61.053%))
+  Logic Levels:           0  
   Clock Path Skew:        0.006ns (DCD - SCD - CPR)
-    Destination Clock Delay (DCD):    0.018ns
-    Source Clock Delay      (SCD):    0.012ns
+    Destination Clock Delay (DCD):    0.019ns
+    Source Clock Delay      (SCD):    0.013ns
     Clock Pessimism Removal (CPR):    -0.000ns
 
     Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
   -------------------------------------------------------------------    -------------------
                          (clock ap_clk rise edge)     0.000     0.000 r  
                                                       0.000     0.000 r  ap_clk (IN)
-                         net (fo=3951, unset)         0.012     0.012    regslice_both_in_1_U/ap_clk
-    SLICE_X158Y423       FDRE                                         r  regslice_both_in_1_U/ack_in_t_reg/C
+                         net (fo=3871, unset)         0.013     0.013    regslice_both_in_1_U/ap_clk
+    SLICE_X111Y400       FDRE                                         r  regslice_both_in_1_U/data_p1_reg[143]/C
   -------------------------------------------------------------------    -------------------
-    SLICE_X158Y423       FDRE (Prop_DFF_SLICEL_C_Q)
-                                                      0.039     0.051 r  regslice_both_in_1_U/ack_in_t_reg/Q
-                         net (fo=4, routed)           0.025     0.076    regslice_both_in_1_U/ack_in_t_reg_0
-    SLICE_X158Y423       LUT6 (Prop_D6LUT_SLICEL_I5_O)
-                                                      0.014     0.090 r  regslice_both_in_1_U/ack_in_t_i_2/O
-                         net (fo=1, routed)           0.016     0.106    regslice_both_in_1_U/ack_in_t_i_2_n_0
-    SLICE_X158Y423       FDRE                                         r  regslice_both_in_1_U/ack_in_t_reg/D
+    SLICE_X111Y400       FDRE (Prop_FFF_SLICEM_C_Q)
+                                                      0.037     0.050 r  regslice_both_in_1_U/data_p1_reg[143]/Q
+                         net (fo=1, routed)           0.058     0.108    grp_rl_Pipeline_VITIS_LOOP_73_1_fu_106/p_0_0_63824_fu_906_reg[7]_1[143]
+    SLICE_X112Y400       FDRE                                         r  grp_rl_Pipeline_VITIS_LOOP_73_1_fu_106/p_0_0_17686_fu_722_reg[7]/D
   -------------------------------------------------------------------    -------------------
 
                          (clock ap_clk rise edge)     0.000     0.000 r  
                                                       0.000     0.000 r  ap_clk (IN)
-                         net (fo=3951, unset)         0.018     0.018    regslice_both_in_1_U/ap_clk
-    SLICE_X158Y423       FDRE                                         r  regslice_both_in_1_U/ack_in_t_reg/C
-                         clock pessimism              0.000     0.018    
-    SLICE_X158Y423       FDRE (Hold_DFF_SLICEL_C_D)
-                                                      0.046     0.064    regslice_both_in_1_U/ack_in_t_reg
+                         net (fo=3871, unset)         0.019     0.019    grp_rl_Pipeline_VITIS_LOOP_73_1_fu_106/ap_clk
+    SLICE_X112Y400       FDRE                                         r  grp_rl_Pipeline_VITIS_LOOP_73_1_fu_106/p_0_0_17686_fu_722_reg[7]/C
+                         clock pessimism              0.000     0.019    
+    SLICE_X112Y400       FDRE (Hold_FFF2_SLICEL_C_D)
+                                                      0.047     0.066    grp_rl_Pipeline_VITIS_LOOP_73_1_fu_106/p_0_0_17686_fu_722_reg[7]
   -------------------------------------------------------------------
-                         required time                         -0.064    
-                         arrival time                           0.106    
+                         required time                         -0.066    
+                         arrival time                           0.108    
   -------------------------------------------------------------------
                          slack                                  0.042    
 
@@ -354,10 +309,10 @@ Waveform(ns):       { 0.000 1.553 }
 Period(ns):         3.106
 Sources:            { ap_clk }
 
-Check Type        Corner  Lib Pin             Reference Pin  Required(ns)  Actual(ns)  Slack(ns)  Location       Pin
-Min Period        n/a     RAMB36E2/CLKARDCLK  n/a            1.569         3.106       1.537      RAMB36_X10Y84  control_s_axi_U/int_sig_io/mem_reg_0/CLKARDCLK
-Low Pulse Width   Slow    RAMB36E2/CLKARDCLK  n/a            0.542         1.553       1.011      RAMB36_X10Y84  control_s_axi_U/int_sig_io/mem_reg_0/CLKARDCLK
-High Pulse Width  Slow    RAMB36E2/CLKARDCLK  n/a            0.542         1.553       1.011      RAMB36_X10Y84  control_s_axi_U/int_sig_io/mem_reg_0/CLKARDCLK
+Check Type        Corner  Lib Pin             Reference Pin  Required(ns)  Actual(ns)  Slack(ns)  Location      Pin
+Min Period        n/a     RAMB36E2/CLKARDCLK  n/a            1.569         3.106       1.537      RAMB36_X6Y80  control_s_axi_U/int_sig_io/mem_reg_0/CLKARDCLK
+Low Pulse Width   Slow    RAMB36E2/CLKARDCLK  n/a            0.542         1.553       1.011      RAMB36_X6Y80  control_s_axi_U/int_sig_io/mem_reg_0/CLKARDCLK
+High Pulse Width  Slow    RAMB36E2/CLKARDCLK  n/a            0.542         1.553       1.011      RAMB36_X6Y80  control_s_axi_U/int_sig_io/mem_reg_0/CLKARDCLK
 
 
 
