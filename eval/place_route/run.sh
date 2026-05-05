@@ -146,10 +146,12 @@ EOF
         k_dsp=$(extract_util_field "${mkdir_app}/${k}_utilization.rpt" "DSPs")
         k_bram=$(extract_util_field "${mkdir_app}/${k}_utilization.rpt" "Block RAM Tile")
 
-        # WNS / WHS extraction from "Design Timing Summary" block.
-        k_wns=$(awk '/Design Timing Summary/{flag=1} flag && /^ +[0-9-]/{print $1; exit}' \
+        # WNS / WHS extraction. The report has a column header line, then
+        # a dashes separator, then the data line — skip the dashes with
+        # two getlines, then read the first numeric line.
+        k_wns=$(awk '/WNS\(ns\)/{getline; getline; sub(/^ +/, ""); print $1; exit}' \
                 "${mkdir_app}/${k}_timing.rpt")
-        k_whs=$(awk '/Design Timing Summary/{flag=1} flag && /^ +[0-9-]/{print $5; exit}' \
+        k_whs=$(awk '/WNS\(ns\)/{getline; getline; sub(/^ +/, ""); print $5; exit}' \
                 "${mkdir_app}/${k}_timing.rpt")
 
         k_cdc_c=$(grep -c "^Critical" "${mkdir_app}/${k}_cdc.rpt" 2>/dev/null | head -1)

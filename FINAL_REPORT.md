@@ -9,16 +9,17 @@ scratch on the Xilinx 2025.2 toolchain targeting the Alveo U50 die
 
 | Metric | Value |
 |---|---|
-| Source files in repo | 305+ |
-| C++ LOC (excl. generated) | 6,000+ |
+| Source files in repo | 500+ |
+| C++ LOC (excl. generated) | 6,500+ |
 | `.clnp` element files | **123** across 9 categories |
-| End-to-end applications | **16** |
-| Tests in CI | **10** (100% pass) |
+| End-to-end applications | **47** |
+| Tests in CI | **87** (100% pass — 10 baseline + 77 element behavioral) |
 | Elements with real Vitis HLS numbers | **123 / 123** |
-| Applications fully P&R'd on real U50 die | **16 / 16** |
-| Apps with WNS ≥ 0 at 322 MHz | **16 / 16** ✓ |
-| Apps with WHS ≥ 0 (hold met) | **16 / 16** |
-| Apps with CDC violations | **0 / 16** |
+| Elements imported by ≥ 1 application | **123 / 123** (100%) |
+| Applications fully P&R'd on real U50 die | **46 / 47** |
+| Apps with WNS ≥ 0 at 322 MHz | **46 / 46** ✓ |
+| Apps with WHS ≥ 0 (hold met) | **46 / 46** ✓ |
+| Apps with CDC violations | **0 / 46** ✓ |
 
 ## 2. Per-element resource estimates (Vitis HLS C-synthesis)
 
@@ -192,6 +193,14 @@ All reports land in `eval/reports/`:
   `scripts/build/implement.sh` pipeline is wired for that step and
   will produce a deployable `.xclbin` once the platform package is
   in place.
+- **ACL_TCAM (1 of 47 apps)** does not complete Vitis HLS C-synthesis:
+  the `RegTCAM @ (acl)` kernel — a 64-entry TCAM with a signal
+  handler — sends HLS into a long-running pipelining heuristic that
+  doesn't terminate within the available time budget. The same
+  RegTCAM element synthesizes cleanly when not @-marked (it appears
+  in the resource_usage CSV with real numbers). Workaround: hand-add
+  `#pragma HLS PIPELINE off` to the signal handler, or shrink the
+  TCAM to 32 entries. The other 46 apps are P&R-clean.
 - ~~**RateLimiter timing closure.** WNS = −0.207 ns flags a real
   timing violation that needs either a clock bump or one extra
   pipeline stage.~~ **Fixed.** Pipelined the token-bucket update; new
