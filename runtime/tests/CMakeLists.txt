@@ -1,0 +1,16 @@
+# Runtime self-tests (pure software; do not require XRT/FPGA)
+add_executable(test_runtime_basic test_runtime_basic.cpp)
+target_link_libraries(test_runtime_basic PRIVATE openclicknp_runtime)
+add_test(NAME runtime_basic COMMAND test_runtime_basic)
+
+add_executable(test_pcap_roundtrip test_pcap_roundtrip.cpp)
+target_link_libraries(test_pcap_roundtrip PRIVATE openclicknp_runtime)
+add_test(NAME runtime_pcap_roundtrip COMMAND test_pcap_roundtrip)
+
+add_executable(test_slot_bridge test_slot_bridge.cpp)
+target_link_libraries(test_slot_bridge PRIVATE openclicknp_runtime)
+add_test(NAME runtime_slot_bridge COMMAND test_slot_bridge)
+
+add_executable(test_functional_sim test_functional_sim.cpp)
+target_link_libraries(test_functional_sim PRIVATE openclicknp_runtime)
+add_test(NAME runtime_functional_sim COMMAND test_functional_sim)
