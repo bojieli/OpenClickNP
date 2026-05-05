@@ -1,0 +1,52 @@
+# Build output
+build/
+generated/
+*.xclbin
+*.xo
+*.dcp
+*.bit
+*.bin
+*.rpd
+*.ltx
+*.html
+*.log
+*.jou
+
+# Vivado / Vitis HLS scratch
+*_proj/
+*.cache/
+*.hw/
+*.ip_user_files/
+*.runs/
+*.sim/
+*.srcs/
+*.gen/
+.Xil/
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+Makefile
+cmake_install.cmake
+compile_commands.json
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Eval scratch (keep reports, drop large intermediates)
+build/eval_*/
+eval/reports/*.dcp
+
+# Don't ignore: PLAN.md, FINAL_REPORT.md, eval/reports/*.csv,
+# eval/reports/*.rpt, eval/reports/*.md
+!eval/reports/*.csv
+!eval/reports/*.rpt
+!eval/reports/*.md
