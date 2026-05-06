@@ -190,7 +190,86 @@ All reports land in `eval/reports/`:
   `utilization_status_block.rpt` — shell-block specifics
 - `summary.md` — Markdown roll-up
 
-## 7. Honest open items
+## 7. RSA modexp (1024 / 2048 / 4096 bits)
+
+The original `RSA_Accelerator` example (in v0.1) wired together four
+auto-generated stub elements (`Mult1024`, `Add2048`, `Subtract1024`,
+`Montgomery`) whose handlers operated on a single 64-bit lane of a
+flit and whose names overstated what they actually did. The graph
+also fanned a single output to two ports of `Montgomery` without an
+intervening `Tee`, which the codegen accepted but produced
+nonsensical wiring for. **None of that performed real RSA.**
+
+The post-v0.1 work replaces the `RSA_Accelerator` topology with a
+single new element, `RSA_ModExp_<BITS>`, that does honest
+multi-precision modexp using a real CIOS Montgomery multiplier
+(`runtime/include/openclicknp/bigint.hpp`) and binary square-and-
+multiply over the exponent bits. Three variants are shipped (1024,
+2048, 4096 bits).
+
+### 7.1 Correctness
+
+End-to-end correctness is verified against Python's `pow(m, e, n)` in
+`tests/elements/test_RSA_ModExp_<BITS>.cpp`. The tests build the
+generated SW-emulator kernel, push 4 / 8 / 16 input flits per operand
+on three input ports, drain the same number of output flits, and
+compare the recovered 1024 / 2048 / 4096-bit ciphertext byte-exactly
+against the reference. **All three pass.**
+
+```
+138/138 tests passing (was 135; +3 RSA correctness tests)
+```
+
+The standalone bigint library has the same vectors covered in
+`/tmp/bigint_test.cpp`-style smoke tests during development.
+
+### 7.2 SW-emulator throughput
+
+Measured by `eval/rsa/run.sh` (200-op runs, single thread, -O3
+codegen, AMD/Intel x86_64 host):
+
+| Bits | Iterations | Wall-clock (s) | Throughput (ops/s) | Latency (µs/op) |
+|---:|---:|---:|---:|---:|
+| 1024 |  200 | 0.0087 | **23,004** |  43 |
+| 2048 |  200 | 0.0375 |  **5,328** | 188 |
+| 4096 |  200 | 0.1229 |  **1,628** | 614 |
+
+Cubic scaling in bit width (≈ 4× per doubling) is what schoolbook
+Montgomery + binary modexp predicts.  For reference, OpenSSL's hand-
+tuned x86 assembly does ~50k / 10k / 2k ops/s at the same bit widths
+on a similar CPU — the from-scratch implementation here lands within
+~2× without any architecture-specific optimization. Raw CSV:
+`eval/reports/rsa_perf.csv`.
+
+### 7.3 Performance bottlenecks identified
+
+Two non-trivial bugs were uncovered during this work and both are now
+fixed:
+
+1. **`compute_R2_mod_n` was wrong.** The first cut computed
+   R² mod n via `mont_mul(R, R)`, which actually returns
+   R · R · R⁻¹ ≡ R (mod n) — not R². Subsequent operands got
+   converted into Montgomery form against a value-of-7-instead-of-49
+   multiplier, producing wrong but plausible-looking ciphertexts.
+   Fixed by computing R² directly via 2N·64 doublings.
+2. **2N-limb Montgomery reduction overflow.** The first cut
+   materialized t = a·b in 2N limbs and then reduced. The carry
+   chain in the reduction phase could push intermediate values
+   beyond t[2N−1], silently dropping the high carry. RSA-1024 and
+   RSA-2048 happened to mask this; RSA-4096 made it visible.
+   Fixed by switching to a fused CIOS algorithm with an N+2-limb
+   accumulator that absorbs both add carries cleanly.
+
+The earlier "all 47 apps P&R-clean at 322 MHz" claim still holds for
+the 47 v0.1 applications. The new `RSA_ModExp_<BITS>` elements'
+bodies are bigger than HLS C-synthesis can pipeline within a 10-min
+budget at 1024 bits — the loop-trip count (1024-bit modexp = 17
+iterations × N²-step Montgomery) hits the same heuristic that
+`RegTCAM` did before its rewrite. Synthesizing as a real FPGA pipe
+will require restructuring the element as a deeper, multi-handler
+state machine; that's deliberate future work and not in v0.1.
+
+## 8. Honest open items
 
 - **No bitstream packaged.** Producing an `.xclbin` requires the
   vendor U50 platform package (`xilinx_u50_gen3x16_xdma_*.deb`)
@@ -211,8 +290,34 @@ All reports land in `eval/reports/`:
   every input/output port carries a full per-port-mask handshake. A
   hand-coded equivalent is ~50 LUTs. Codegen optimization is on the
   roadmap; correctness is not affected.
+- **SW emu codegen used `SwStream::null()` placeholders for every
+  kernel port** — meaning the generated `openclicknp_sw_emu_main`
+  binary launched kernels in isolation rather than wired into the
+  topology graph. Fixed: the codegen now declares one
+  `openclicknp::SwStream` per `stream_conns / tor_conns / nic_conns
+  / host_streams` entry and threads them into the kernel calls at
+  the right port indices, with namespace-scoped accessors so a test
+  harness can drive the boundaries (`openclicknp_sw_emu::host_stream_<n>()`,
+  etc.). The L2 SW-emu CI job remains green; the per-element
+  behavioral tests are unaffected (they manage their own streams).
+- **`RSA_ModExp_<BITS>` doesn't synthesize via Vitis HLS** within
+  the project's 10-min C-synthesis budget. The element runs the
+  full modexp inside one `.handler` invocation, which is friendly
+  for SW emu but blows past HLS's loop-pipelining heuristics. A
+  redesigned multi-cycle pipeline is straightforward future work.
+- **Stub elements.** `elements/crypto/{Mult1024,Add2048,Subtract1024,
+  Montgomery,RSA_modexp,SHA1,Mult,Add,...}.clnp` were auto-generated
+  during the bulk-elements scale-up and have stub handlers that act
+  on a single flit (single 64-bit lane in most cases). They satisfy
+  the per-element behavioral test (it checks liveness, not
+  semantics) and contribute real Vitis HLS resource numbers (those
+  are accurate — for the stub op, not for the named multi-precision
+  operation). Apps that need real multi-precision arithmetic should
+  use `RSA_ModExp_<BITS>` or write their own honest element. The
+  stub library is being kept around to preserve the per-element
+  P&R numbers; we may rename the misleading ones in a follow-up.
 
-## 8. Repository tour
+## 9. Repository tour
 
 ```
 OpenClickNP/                  https://github.com/bojieli/OpenClickNP

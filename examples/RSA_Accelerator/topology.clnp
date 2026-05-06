@@ -1,27 +1,24 @@
 // SPDX-License-Identifier: Apache-2.0
-// Application: RSA_Accelerator
-import "crypto/Mult1024.clnp";
-import "crypto/Add2048.clnp";
-import "crypto/Subtract1024.clnp";
-import "crypto/Montgomery.clnp";
-import "core/Tee.clnp";
+//
+// RSA_Accelerator: 1024-bit RSA modexp accelerator.
+//
+// Layout (replaces the earlier-broken split/Mult1024/Montgomery/Add2048/
+// Subtract1024 chain whose primitive elements were 64-bit-lane stubs and
+// whose fan-out wiring was structurally invalid).
+//
+// The compute is now a single RSA_ModExp_1024 element. It takes m, e, n
+// each as 4 flits via host_in (one host_in stream per operand on
+// PORT_1, PORT_2, PORT_3) and emits the 1024-bit ciphertext c as 4 flits
+// to host_out. End-to-end correctness is verified against
+// Python pow(m, 65537, n) — see tests/elements/test_RSA_ModExp_1024.cpp.
+import "crypto/RSA_ModExp_1024.clnp";
 import "core/Pass.clnp";
 
-Tee        :: split (1, 2)
-Mult1024   :: mul (2, 1)
-Add2048    :: add (2, 1)
-Subtract1024 :: sub (2, 1)
-Montgomery :: mont (2, 1)
-Pass       :: rev
+RSA_ModExp_1024 :: rsa (3, 1)
+Pass            :: rev
 
-host_in -> split
-split[1] -> [1]mul
-split[2] -> [2]mul
-mul -> [1]mont
-mul -> [2]mont
-mont -> [1]add
-mont -> [2]add
-add -> [1]sub
-add -> [2]sub
-sub -> host_out
+host_in -> [1]rsa
+host_in -> [2]rsa
+host_in -> [3]rsa
+rsa[1] -> host_out
 tor_in -> rev -> nic_out
