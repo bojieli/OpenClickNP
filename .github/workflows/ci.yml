@@ -24,7 +24,7 @@ jobs:
     name: L1 unit + simulator smokes
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: install build deps
         run: |
           sudo apt-get update
@@ -43,7 +43,7 @@ jobs:
     runs-on: ubuntu-22.04
     needs: unit-and-smokes
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: sudo apt-get update && sudo apt-get install -y cmake g++ ninja-build
       - run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release && cmake --build build
       - name: PassTraffic SW-emu

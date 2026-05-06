@@ -20,6 +20,46 @@ This project is a clean-room reimplementation: every line of source is
 written from the published paper as the only specification. It is
 licensed under Apache-2.0.
 
+## Architecture at a glance
+
+```mermaid
+flowchart LR
+    SRC[".clnp source<br/>(elements + topology)"]
+    CC["openclicknp-cc<br/>lex → parse → resolve<br/>→ analyses → lower"]
+    SRC --> CC
+
+    CC --> HLS["HLS C++"]
+    CC --> SC["SystemC"]
+    CC --> SW["SW emu"]
+    CC --> VER["Verilator"]
+    CC --> LINK["v++ link"]
+    CC --> HOST["XRT host"]
+
+    HLS --> VITIS["Vitis HLS"]
+    VITIS --> VIVADO["Vivado<br/>P&amp;R"]
+    LINK --> VIVADO
+    VIVADO --> XCLBIN[".xclbin"]
+    XCLBIN --> U50["Alveo U50"]
+
+    SC --> SCBIN["SystemC sim<br/>(L3, cycle-acc.)"]
+    SW --> SWBIN["std::thread emu<br/>(L2, fast)"]
+    VER --> VERBIN["Verilator sim<br/>(L4, RTL)"]
+
+    HOST --> HBIN["host program<br/>(libopenclicknp_runtime)"]
+    HBIN -. XRT .-> U50
+
+    classDef src fill:#e8f4f8,stroke:#2b6cb0,color:#1a365d
+    classDef tool fill:#fef5e7,stroke:#c05621,color:#744210
+    classDef out fill:#e6fffa,stroke:#2c7a7b,color:#234e52
+    class SRC,CC src
+    class HLS,SC,SW,VER,LINK,HOST,VITIS,VIVADO tool
+    class XCLBIN,U50,SCBIN,SWBIN,VERBIN,HBIN out
+```
+
+The same `.clnp` source compiles to all six backends without
+modification — element bodies are passed through opaquely. See
+[`docs/architecture.md`](docs/architecture.md) for the full picture.
+
 ## Status
 
 v0.1. The compiler, runtime, element library (123 elements across 9
