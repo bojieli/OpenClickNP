@@ -1,5 +1,6 @@
-# Build output
-build/
+# Build output (top-level only — `build/` without a leading slash also
+# matches scripts/build/, which holds tracked toolchain wrappers).
+/build/
 generated/
 *.xclbin
 *.xo
