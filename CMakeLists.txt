@@ -44,6 +44,12 @@ if(OPENCLICKNP_BUILD_RUNTIME)
     add_subdirectory(examples)
 endif()
 
+# Optional: OpenSSL ENGINE integration (built only if OpenSSL >= 3.0
+# headers are available). Provides ssl_integration/openclicknp.so so
+# stock OpenSSL clients can route RSA modexp through the accelerator
+# without source changes.
+add_subdirectory(ssl_integration)
+
 # -------- Install --------
 install(FILES PLAN.md README.md LICENSE
         DESTINATION share/openclicknp)

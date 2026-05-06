@@ -1,34 +1,69 @@
 // SPDX-License-Identifier: Apache-2.0
 //
-// RSA_ModExp_1024: 1024-bit modular exponentiation pipeline.
+// RSA_ModExp_1024: 1024-bit RSA modular exponentiation, structured as a
+// multi-cycle state-machine pipeline.
 //
-// Computes c = m^e mod n where m, e, n, c are each 1024-bit integers.
+// Why a state machine: the prior single-shot variant ran the entire
+// modexp inside one .handler invocation. That's friendly for SW emu
+// (it's just C++) but Vitis HLS C-synthesis can't pipeline it — the
+// outer modexp loop has data-dependent trip count (bitlen of e) and
+// the nested CIOS Montgomery loops blow past the heuristic's budget.
+// HLS gives up before producing RTL.
 //
-// Flit-level protocol:
-//   • Each operand is streamed as 4 flits (1024 bits / 256 payload bits).
-//     Limbs are packed 4×uint64 per flit, little-endian (limb 0..3 in
-//     flit 0, limbs 4..7 in flit 1, …).
-//   • Three input ports: PORT_1 = m, PORT_2 = e, PORT_3 = n.
-//   • Output port: 4 flits of c.
+// This rewrite splits the modexp into bounded states. Each .handler
+// call advances exactly one step. Each step's body has fixed-trip-
+// count loops that HLS can pipeline cleanly. The number of handler
+// invocations per modexp is deterministic (≈ 50 for e = 65537), so
+// throughput is bounded by the chosen II × steps-per-modexp.
 //
-// Internals: see runtime/include/openclicknp/bigint.hpp for the CIOS
-// Montgomery multiplication + left-to-right square-and-multiply modexp
-// driving the per-instance computation. Verified against Python pow()
-// for representative test vectors at 1024/2048/4096 bits.
+// State sequence per modexp:
+//
+//      COLLECT   collect 4 flits each on PORT_1 (m), PORT_2 (e),
+//                PORT_3 (n) — up to 4 handler calls, advances one
+//                flit per ready port per call.
+//      INIT      compute n_inv (Hensel lift), R²; convert m → m_mont;
+//                set r_mont = R mod n; one handler call.
+//      FIND_BIT  set bit_idx = bitlen(e) − 1; one handler call.
+//      SQUARE    r_mont ← mont_mul(r_mont, r_mont); one call.
+//      MAYBE_MUL if bit_idx-th bit of e is set, r_mont ← mont_mul
+//                (r_mont, m_mont); one call.
+//      NEXT_BIT  decrement bit_idx; if ≥ 0 → SQUARE, else FINAL.
+//      FINAL     r_out ← mont_mul(r_mont, 1) — out of Montgomery form.
+//      EMIT      one output flit per call, 4 calls total.
+//
+// The mont_mul body itself is bounded (16 outer × 16 inner). With
+// HLS PIPELINE/UNROLL pragmas it synthesizes cleanly. See
+// runtime/include/openclicknp/bigint.hpp for the math.
 .element RSA_ModExp_1024 <3, 1> {
     .state {
         constexpr uint32_t LIMBS = 16;
-        constexpr uint32_t FLITS = 4;       // LIMBS / 4
+        constexpr uint32_t FLITS = 4;
+
+        constexpr uint32_t S_COLLECT   = 0;
+        constexpr uint32_t S_INIT      = 1;
+        constexpr uint32_t S_FIND_BIT  = 2;
+        constexpr uint32_t S_SQUARE    = 3;
+        constexpr uint32_t S_MAYBE_MUL = 4;
+        constexpr uint32_t S_NEXT_BIT  = 5;
+        constexpr uint32_t S_FINAL     = 6;
+        constexpr uint32_t S_EMIT      = 7;
+
+        uint32_t state;
         uint32_t m_idx, e_idx, n_idx, out_idx;
-        uint32_t phase;                     // 0=collect, 1=compute, 2=emit
+        int32_t  bit_idx;
+
         uint64_t m_buf[LIMBS], e_buf[LIMBS], n_buf[LIMBS], c_buf[LIMBS];
+        uint64_t m_mont[LIMBS], r_mont[LIMBS], R2_val[LIMBS];
+        uint64_t n_inv;
     }
     .init {
+        _state.state = _state.S_COLLECT;
         _state.m_idx = _state.e_idx = _state.n_idx = _state.out_idx = 0;
-        _state.phase = 0;
+        _state.bit_idx = 0;
+        _state.n_inv = 0;
     }
     .handler {
-        if (_state.phase == 0) {
+        if (_state.state == _state.S_COLLECT) {
             if (_state.m_idx < _state.FLITS && test_input_port(PORT_1)) {
                 openclicknp::flit_t f = read_input_port(PORT_1);
                 for (uint32_t i = 0; i < 4; ++i)
@@ -50,22 +85,73 @@
             if (_state.m_idx == _state.FLITS &&
                 _state.e_idx == _state.FLITS &&
                 _state.n_idx == _state.FLITS) {
-                _state.phase = 1;
+                _state.state = _state.S_INIT;
             }
-        }
-        if (_state.phase == 1) {
-            openclicknp::bigint::U<16> m, e, n, c;
+        } else if (_state.state == _state.S_INIT) {
+            openclicknp::bigint::U<16> n_view, m_view, R2, m_mont_v, R_v;
             for (uint32_t i = 0; i < _state.LIMBS; ++i) {
-                m.limbs[i] = _state.m_buf[i];
-                e.limbs[i] = _state.e_buf[i];
-                n.limbs[i] = _state.n_buf[i];
+                n_view.limbs[i] = _state.n_buf[i];
+                m_view.limbs[i] = _state.m_buf[i];
             }
-            openclicknp::bigint::modexp(c, m, e, n);
+            _state.n_inv = openclicknp::bigint::compute_n_inv(n_view);
+            openclicknp::bigint::compute_R2_mod_n(R2, n_view, _state.n_inv);
+            openclicknp::bigint::compute_R_mod_n(R_v, n_view);
+            openclicknp::bigint::mont_mul(m_mont_v, m_view, R2, n_view, _state.n_inv);
+            for (uint32_t i = 0; i < _state.LIMBS; ++i) {
+                _state.R2_val[i] = R2.limbs[i];
+                _state.m_mont[i] = m_mont_v.limbs[i];
+                _state.r_mont[i] = R_v.limbs[i];
+            }
+            _state.state = _state.S_FIND_BIT;
+        } else if (_state.state == _state.S_FIND_BIT) {
+            openclicknp::bigint::U<16> e_view;
             for (uint32_t i = 0; i < _state.LIMBS; ++i)
-                _state.c_buf[i] = c.limbs[i];
-            _state.phase = 2;
-        }
-        if (_state.phase == 2 && _state.out_idx < _state.FLITS) {
+                e_view.limbs[i] = _state.e_buf[i];
+            _state.bit_idx = e_view.bitlen() - 1;
+            if (_state.bit_idx < 0) _state.state = _state.S_FINAL;
+            else _state.state = _state.S_SQUARE;
+        } else if (_state.state == _state.S_SQUARE) {
+            openclicknp::bigint::U<16> n_view, r_v, sq;
+            for (uint32_t i = 0; i < _state.LIMBS; ++i) {
+                n_view.limbs[i] = _state.n_buf[i];
+                r_v.limbs[i] = _state.r_mont[i];
+            }
+            openclicknp::bigint::mont_mul(sq, r_v, r_v, n_view, _state.n_inv);
+            for (uint32_t i = 0; i < _state.LIMBS; ++i)
+                _state.r_mont[i] = sq.limbs[i];
+            _state.state = _state.S_MAYBE_MUL;
+        } else if (_state.state == _state.S_MAYBE_MUL) {
+            openclicknp::bigint::U<16> e_view;
+            for (uint32_t i = 0; i < _state.LIMBS; ++i)
+                e_view.limbs[i] = _state.e_buf[i];
+            if (e_view.bit(_state.bit_idx)) {
+                openclicknp::bigint::U<16> n_view, r_v, m_v, mu;
+                for (uint32_t i = 0; i < _state.LIMBS; ++i) {
+                    n_view.limbs[i] = _state.n_buf[i];
+                    r_v.limbs[i] = _state.r_mont[i];
+                    m_v.limbs[i] = _state.m_mont[i];
+                }
+                openclicknp::bigint::mont_mul(mu, r_v, m_v, n_view, _state.n_inv);
+                for (uint32_t i = 0; i < _state.LIMBS; ++i)
+                    _state.r_mont[i] = mu.limbs[i];
+            }
+            _state.state = _state.S_NEXT_BIT;
+        } else if (_state.state == _state.S_NEXT_BIT) {
+            --_state.bit_idx;
+            if (_state.bit_idx < 0) _state.state = _state.S_FINAL;
+            else _state.state = _state.S_SQUARE;
+        } else if (_state.state == _state.S_FINAL) {
+            openclicknp::bigint::U<16> n_view, r_v, one_v, c_v;
+            one_v.set_zero(); one_v.limbs[0] = 1;
+            for (uint32_t i = 0; i < _state.LIMBS; ++i) {
+                n_view.limbs[i] = _state.n_buf[i];
+                r_v.limbs[i] = _state.r_mont[i];
+            }
+            openclicknp::bigint::mont_mul(c_v, r_v, one_v, n_view, _state.n_inv);
+            for (uint32_t i = 0; i < _state.LIMBS; ++i)
+                _state.c_buf[i] = c_v.limbs[i];
+            _state.state = _state.S_EMIT;
+        } else if (_state.state == _state.S_EMIT && _state.out_idx < _state.FLITS) {
             openclicknp::flit_t f{};
             for (uint32_t i = 0; i < 4; ++i)
                 f.set((int)i, _state.c_buf[_state.out_idx * 4 + i]);
@@ -75,7 +161,7 @@
             ++_state.out_idx;
             if (_state.out_idx == _state.FLITS) {
                 _state.m_idx = _state.e_idx = _state.n_idx = _state.out_idx = 0;
-                _state.phase = 0;
+                _state.state = _state.S_COLLECT;
             }
         }
         return openclicknp::PORT_ALL;

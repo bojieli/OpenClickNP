@@ -1,0 +1,61 @@
+================================================================
+== Design Size Report
+================================================================
+
+* Total Instructions per Compilation Phase
++---------------+----------------------------+--------------+----------------------------------------------------------------------------------------+
+| Phase         | Step                       | Instructions | Description                                                                            |
++---------------+----------------------------+--------------+----------------------------------------------------------------------------------------+
+| Compile/Link  |                            |    980       | After all functions are compiled and linked into a single design                       |
+|               |                            |              |                                                                                        |
+| Unroll/Inline |                            |              | After user unroll and inline pragmas are applied                                       |
+|               | (1) unroll                 | 17,869       | user unroll pragmas are applied                                                        |
+|               | (2) simplification         |  9,940       | simplification of applied user unroll pragmas                                          |
+|               | (3) inline                 |  8,943       | user inline pragmas are applied                                                        |
+|               | (4) simplification         |  7,646       | simplification of applied user inline pragmas                                          |
+|               |                            |              |                                                                                        |
+| Array/Struct  |                            |              | After user array partition and struct aggregate/disaggregate pragmas are applied       |
+|               | (1) array partition        |  7,381       | user array partition pragmas are applied                                               |
+|               | (2) simplification         |  7,381       | simplification of applied user array partition & struct aggregate/disaggregate pragmas |
+|               | (3) aggregate/disaggregate |  7,381       | user struct aggregate/disaggregate pragmas are applied                                 |
+|               | (4) array reshape          |  7,381       | apply array reshape pragmas                                                            |
+|               | (5) access patterns        |  7,309       | array access pattern optmizations                                                      |
+|               |                            |              |                                                                                        |
+| Performance   |                            |              | After transformations are applied to meet performance pragma targets                   |
+|               | (1) loop simplification    |  7,309       | loop and instruction simplification                                                    |
+|               | (2) parallelization        |  6,828       | loops are unrolled or pipelined to meet performance targets                            |
+|               | (3) array partition        |  7,939       | arrays are partitioned to meet performance targets                                     |
+|               | (4) simplification         |  6,064       | simplification of design after performance transformations                             |
+|               |                            |              |                                                                                        |
+| HW Transforms |                            |              | After hardware transfomations                                                          |
+|               | (1) lowering               |  6,101       | initial conversion to HW specific instructions                                         |
+|               | (2) optimizations          |  6,612       | high level synthesis optimizations                                                     |
++---------------+----------------------------+--------------+----------------------------------------------------------------------------------------+
+
+* Instructions per Function for each Compilation Phase
++----------------------+----------------+----------------+-----------------+-----------------+-------------+---------------+
+| Function             | Location       | Compile/Link   | Unroll/Inline   | Array/Struct    | Performance | HW Transforms |
++----------------------+----------------+----------------+-----------------+-----------------+-------------+---------------+
+| + u                  | u.cpp:28       | 980            | 7,646           | 7,309           | 6,064       | 6,612         |
+|    flit_t            | flit.hpp:28    |  20 (4 calls)  |                 |                 |             |               |
+|    PORT_BIT          | flit.hpp:88    |  32 (16 calls) |                 |                 |             |               |
+|    get               | flit.hpp:46    |  81 (3 calls)  |  588 (12 calls) |  528 (12 calls) |             |               |
+|    U                 | bigint.hpp:30  |  20 (4 calls)  |                 |                 |             |               |
+|    compute_n_inv<16> | bigint.hpp:182 |  23            |                 |                 |             |               |
+|  + mont_mul<16>      | bigint.hpp:128 | 295            | 4,823           | 4,823           | 4,723       | 4,676         |
+|     cmp<16>          | bigint.hpp:64  |  58            |  107            |  107            |   75        |   75          |
+|     U                | bigint.hpp:30  |   5            |                 |                 |             |               |
+|     sub<16>          | bigint.hpp:85  |  49            |  247            |  247            |  199        |  199          |
+|    set               | flit.hpp:42    |  21            |  176 (4 calls)  |  164 (4 calls)  |             |               |
+|    set_sop           | flit.hpp:60    |  23            |                 |                 |             |               |
+|    set_eop           | flit.hpp:61    |  23            |                 |                 |             |               |
++----------------------+----------------+----------------+-----------------+-----------------+-------------+---------------+
+
+* Design Size Message Settings
++---------------------------------------------+--------+------------------------------------------------------------------+
+| Message Setting                             | Value  | Description                                                      |
++---------------------------------------------+--------+------------------------------------------------------------------+
+| config_compile -design_size_maximum_warning | 100000 | Show a warning when total design instructions exceeds this value |
++---------------------------------------------+--------+------------------------------------------------------------------+
+
+

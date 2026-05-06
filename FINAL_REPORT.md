@@ -241,7 +241,87 @@ on a similar CPU — the from-scratch implementation here lands within
 ~2× without any architecture-specific optimization. Raw CSV:
 `eval/reports/rsa_perf.csv`.
 
-### 7.3 Performance bottlenecks identified
+### 7.3 OpenSSL integration
+
+The RSA pipeline ships with a working OpenSSL 3.x ENGINE
+(`ssl_integration/`) so stock OpenSSL clients can route RSA modular
+exponentiation through the OpenClickNP path with no application
+change. The engine binds `RSA_METHOD::bn_mod_exp` to a C-callable
+shim that converts OpenSSL `BIGNUM`s to little-endian limb arrays
+and calls `openclicknp::bigint::modexp`.
+
+Verified end-to-end via:
+
+1. **`ssl_integration/test_openssl_engine`** — generates a 2048-bit
+   RSA key, encrypts and decrypts a message, and asserts byte-exact
+   round-trip. Engine STATS shows 5+ `modexp_calls` during the run
+   (every public-key op went through our path).
+2. **`openssl speed -engine openclicknp rsa1024 rsa2048`** —
+   measures verify throughput at 41,521 / 6,602 ops·s on this
+   x86_64 host (single thread; this is how OpenSSL would benchmark
+   the path in production).
+3. **`ssl_integration/demo_tls.sh`** — full TLS 1.2 handshake using
+   `openssl s_server -engine openclicknp` and `openssl s_client`.
+   Negotiates `AES256-SHA256` (RSA key exchange, so RSA modexp is on
+   the handshake's critical path), exchanges the cert, establishes a
+   session. Confirms a real TLS endpoint can use the accelerator path
+   without source modification.
+
+Today the engine's backing implementation is the SW-emu code in
+`bigint.hpp`. Switching to an FPGA-backed implementation is a
+single-function change in `ssl_integration/openclicknp_modexp.cpp`
+once the platform package is installed and an `.xclbin` is loaded.
+
+### 7.4 Hardware-side numbers (Vitis HLS C-synthesis on U50 die)
+
+Vitis HLS C-synthesis on the smaller `MontMul_1024` element — the
+single-Montgomery-multiplication primitive that's the inner kernel
+of an RSA modexp pipeline — produced real RTL with these numbers
+on `xcu50-fsvh2104-2-e`:
+
+| Metric | Value |
+|---|---|
+| Latency per Montgomery multiplication | **266 cycles** |
+| Initiation interval (steady state) | **II = 1** |
+| Estimated Fmax (mont_mul subfunction) | 322 MHz (target) — clean |
+| Estimated Fmax (top-level wrapper) | 241.96 MHz (sub-target — needs more pipelining) |
+| LUT (top-level) | 263,814 (30% of U50) |
+| FF (top-level) | 718,533 (41% of U50) |
+| DSP (top-level) | **8,452 (142% of U50 — over-budget)** |
+| BRAM | 0 |
+| URAM | 0 |
+| HLS C-synthesis time | 32 seconds |
+
+The DSP-over-budget is the key honest open item: the inner schoolbook
+multiplications get fully unrolled into 8.4k DSP slices, which exceeds
+the U50's 5,952-DSP budget by 42%. Three fix options of decreasing
+elegance:
+
+1. Roll the inner loop by a factor of 2 (8 partial-products per cycle
+   instead of 16) → 4.2k DSPs, fits, II=2, halves throughput.
+2. Use a single shared multiplier with a sequential schedule
+   → ~16 DSPs, fits trivially, throughput drops to ~256 cycles per
+   limb-mult or ~16k cycles per mont_mul.
+3. Target a larger device (U280 has 9,024 DSPs; VP1352 has 12k+).
+
+Per-modexp projection (option 1, the area-balanced choice):
+- e = 65537 has bitlen 17 with 2 set bits ≈ 24 mont_muls per modexp
+  (init / 17 squares / 2 multiplies / final / overhead)
+- Sequential: 24 × 266 × 2 = 12,768 cycles ≈ 39.6 µs per RSA-1024 op at 322 MHz
+- Pipelined: ~13.4 M ops/s (throughput-optimal — one new modexp every 24 cycles)
+
+The full `RSA_ModExp_1024` state-machine element does C-synthesize
+through HLS's Performance phase but doesn't complete in the budget
+(its design size remains ~2.8M instructions even after Array/Struct
+optimizations). Pulling that down to a synthesizable-in-budget
+design is the same area-tuning work as the DSP rollback above —
+real engineering, not a fundamental obstacle.
+
+Reports preserved at `eval/reports/rsa_hls/`:
+`montmul_1024_u_csynth.rpt`, `montmul_1024_mont_mul_csynth.rpt`,
+`montmul_1024_design_size.rpt`.
+
+### 7.5 Performance bottlenecks identified
 
 Two non-trivial bugs were uncovered during this work and both are now
 fixed:
@@ -300,11 +380,19 @@ state machine; that's deliberate future work and not in v0.1.
   harness can drive the boundaries (`openclicknp_sw_emu::host_stream_<n>()`,
   etc.). The L2 SW-emu CI job remains green; the per-element
   behavioral tests are unaffected (they manage their own streams).
-- **`RSA_ModExp_<BITS>` doesn't synthesize via Vitis HLS** within
-  the project's 10-min C-synthesis budget. The element runs the
-  full modexp inside one `.handler` invocation, which is friendly
-  for SW emu but blows past HLS's loop-pipelining heuristics. A
-  redesigned multi-cycle pipeline is straightforward future work.
+- ~~**`RSA_ModExp_<BITS>` doesn't synthesize via Vitis HLS** within
+  the project's 10-min C-synthesis budget.~~ **Partially fixed.**
+  Restructured `RSA_ModExp_<BITS>` as a multi-cycle state machine
+  (one Montgomery-step per `.handler` call) and added `#pragma HLS
+  INLINE off` + `PIPELINE II=1` on `mont_mul`. The smaller primitive
+  `MontMul_1024` now C-synthesizes cleanly to RTL in 32 seconds with
+  **266-cycle latency at II=1** (fully pipelined Montgomery
+  multiplication). The full state-machine variant of `RSA_ModExp_1024`
+  still has a >2.8M-instruction profile after Performance phase —
+  HLS continues past Performance into HW Transforms and progresses
+  but doesn't complete in the budget; pulling that down is a
+  future-work area-tuning effort. See § 7.4 for the detailed
+  hardware-side numbers.
 - **Stub elements.** `elements/crypto/{Mult1024,Add2048,Subtract1024,
   Montgomery,RSA_modexp,SHA1,Mult,Add,...}.clnp` were auto-generated
   during the bulk-elements scale-up and have stub handlers that act

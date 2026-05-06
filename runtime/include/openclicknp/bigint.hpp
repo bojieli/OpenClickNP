@@ -117,14 +117,27 @@ inline void mul(U<2 * N>& out, const U<N>& a, const U<N>& b) {
 //
 // Result is in [0, 2n); we do a final conditional subtract to reduce
 // into [0, n).
+//
+// HLS notes: when synthesized, we mark this function INLINE off so
+// HLS allocates a single shared instance instead of replicating the
+// body at each call site (which made the design balloon to millions
+// of instructions before the pragmas were added). The N+2-limb local
+// array becomes a registered work buffer; the inner loops pipeline
+// naturally at II=1.
 template <int N>
 inline void mont_mul(U<N>& out, const U<N>& a, const U<N>& b,
                      const U<N>& n, uint64_t n_inv) {
+#ifdef __SYNTHESIS__
+#pragma HLS INLINE off
+#endif
     // Accumulator needs N+2 limbs: N for the working result, 1 for the
     // outer multiply carry, 1 for the reduction's add-back overflow.
     uint64_t t[N + 2] = {};
 
     for (int i = 0; i < N; ++i) {
+#ifdef __SYNTHESIS__
+#pragma HLS PIPELINE II=1
+#endif
         // Step 1: t += a[i] * b
         uint64_t carry = 0;
         for (int j = 0; j < N; ++j) {
@@ -236,8 +249,17 @@ inline void compute_R2_mod_n(U<N>& out, const U<N>& n, uint64_t /*n_inv*/) {
 //
 // Uses left-to-right square-and-multiply with Montgomery multiplication.
 // All intermediates live in Montgomery form (x_mont = x · R mod n).
+//
+// HLS note: the bitlen-driven outer loop is data-dependent and won't
+// pipeline cleanly. The recommended HLS path is to drive modexp from
+// a multi-cycle .handler state machine that calls mont_mul once per
+// invocation (see elements/crypto/RSA_ModExp_<BITS>.clnp). This
+// inline definition is the SW-emu reference.
 template <int N>
 inline void modexp(U<N>& out, const U<N>& m, const U<N>& e, const U<N>& n) {
+#ifdef __SYNTHESIS__
+#pragma HLS INLINE off
+#endif
     uint64_t n_inv = compute_n_inv(n);
 
     // Convert m into Montgomery form: m_mont = m · R mod n
