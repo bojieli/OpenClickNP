@@ -1,7 +1,7 @@
 Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2025 Advanced Micro Devices, Inc. All Rights Reserved.
 --------------------------------------------------------------------------------------------------------------------------------------------------
 | Tool Version      : Vivado v.2025.2 (lin64) Build 6299465 Fri Nov 14 12:34:56 MST 2025
-| Date              : Tue May  5 14:55:45 2026
+| Date              : Wed May  6 03:42:14 2026
 | Host              : ubuntu running 64-bit Ubuntu 22.04.5 LTS
 | Command           : report_timing_summary -file /home/ubuntu/OpenClickNP/eval/reports/pnr/FlitTelemetry/fd_timing.rpt
 | Design            : fd
@@ -139,7 +139,7 @@ Table of Contents
 
     WNS(ns)      TNS(ns)  TNS Failing Endpoints  TNS Total Endpoints      WHS(ns)      THS(ns)  THS Failing Endpoints  THS Total Endpoints     WPWS(ns)     TPWS(ns)  TPWS Failing Endpoints  TPWS Total Endpoints  
     -------      -------  ---------------------  -------------------      -------      -------  ---------------------  -------------------     --------     --------  ----------------------  --------------------  
-      0.399        0.000                      0                22597        0.041        0.000                      0                22597        1.021        0.000                       0                  7742  
+      0.444        0.000                      0                10311        0.042        0.000                      0                10311        1.278        0.000                       0                  5699  
 
 
 All user specified timing constraints are met.
@@ -162,7 +162,7 @@ ap_clk  {0.000 1.553}        3.106           321.958
 
 Clock             WNS(ns)      TNS(ns)  TNS Failing Endpoints  TNS Total Endpoints      WHS(ns)      THS(ns)  THS Failing Endpoints  THS Total Endpoints     WPWS(ns)     TPWS(ns)  TPWS Failing Endpoints  TPWS Total Endpoints  
 -----             -------      -------  ---------------------  -------------------      -------      -------  ---------------------  -------------------     --------     --------  ----------------------  --------------------  
-ap_clk              0.399        0.000                      0                22597        0.041        0.000                      0                22597        1.021        0.000                       0                  7742  
+ap_clk              0.444        0.000                      0                10311        0.042        0.000                      0                10311        1.278        0.000                       0                  5699  
 
 
 ------------------------------------------------------------------------------------------------
@@ -193,27 +193,27 @@ Path Group    From Clock    To Clock          WNS(ns)      TNS(ns)  TNS Failing 
 From Clock:  ap_clk
   To Clock:  ap_clk
 
-Setup :            0  Failing Endpoints,  Worst Slack        0.399ns,  Total Violation        0.000ns
-Hold  :            0  Failing Endpoints,  Worst Slack        0.041ns,  Total Violation        0.000ns
-PW    :            0  Failing Endpoints,  Worst Slack        1.021ns,  Total Violation        0.000ns
+Setup :            0  Failing Endpoints,  Worst Slack        0.444ns,  Total Violation        0.000ns
+Hold  :            0  Failing Endpoints,  Worst Slack        0.042ns,  Total Violation        0.000ns
+PW    :            0  Failing Endpoints,  Worst Slack        1.278ns,  Total Violation        0.000ns
 ---------------------------------------------------------------------------------------------------
 
 
 Max Delay Paths
 --------------------------------------------------------------------------------------
-Slack (MET) :             0.399ns  (required time - arrival time)
-  Source:                 ap_CS_fsm_reg[3]_rep__3/C
-                            (rising edge-triggered cell FDRE clocked by ap_clk  {rise@0.000ns fall@1.553ns period=3.106ns})
-  Destination:            p_output_data_34_U/q1_reg[2]/CE
+Slack (MET) :             0.444ns  (required time - arrival time)
+  Source:                 regslice_both_in_1_U/FSM_sequential_state_reg[0]/C
+                            (rising edge-triggered cell FDSE clocked by ap_clk  {rise@0.000ns fall@1.553ns period=3.106ns})
+  Destination:            regslice_both_in_1_U/data_p1_reg[478]/D
                             (rising edge-triggered cell FDRE clocked by ap_clk  {rise@0.000ns fall@1.553ns period=3.106ns})
   Path Group:             ap_clk
   Path Type:              Setup (Max at Slow Process Corner)
   Requirement:            3.106ns  (ap_clk rise@3.106ns - ap_clk rise@0.000ns)
-  Data Path Delay:        2.604ns  (logic 0.157ns (6.029%)  route 2.447ns (93.971%))
-  Logic Levels:           2  (BUFGCE=1 LUT2=1)
+  Data Path Delay:        2.642ns  (logic 0.225ns (8.515%)  route 2.417ns (91.485%))
+  Logic Levels:           1  (LUT4=1)
   Clock Path Skew:        -0.009ns (DCD - SCD + CPR)
-    Destination Clock Delay (DCD):    0.020ns = ( 3.126 - 3.106 ) 
-    Source Clock Delay      (SCD):    0.029ns
+    Destination Clock Delay (DCD):    0.021ns = ( 3.127 - 3.106 ) 
+    Source Clock Delay      (SCD):    0.030ns
     Clock Pessimism Removal (CPR):    0.000ns
   Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
     Total System Jitter     (TSJ):    0.071ns
@@ -225,34 +225,31 @@ Slack (MET) :             0.399ns  (required time - arrival time)
   -------------------------------------------------------------------    -------------------
                          (clock ap_clk rise edge)     0.000     0.000 r  
                                                       0.000     0.000 r  ap_clk (IN)
-                         net (fo=7741, unset)         0.029     0.029    ap_clk
-    SLICE_X136Y411       FDRE                                         r  ap_CS_fsm_reg[3]_rep__3/C
+                         net (fo=5698, unset)         0.030     0.030    regslice_both_in_1_U/ap_clk
+    SLICE_X48Y311        FDSE                                         r  regslice_both_in_1_U/FSM_sequential_state_reg[0]/C
   -------------------------------------------------------------------    -------------------
-    SLICE_X136Y411       FDRE (Prop_GFF_SLICEL_C_Q)
-                                                      0.079     0.108 r  ap_CS_fsm_reg[3]_rep__3/Q
-                         net (fo=105, routed)         0.107     0.215    grp_fd_Pipeline_VITIS_LOOP_35_1_fu_806/q1_reg[7]
-    SLICE_X136Y410       LUT2 (Prop_G6LUT_SLICEL_I0_O)
-                                                      0.050     0.265 r  grp_fd_Pipeline_VITIS_LOOP_35_1_fu_806/q1[7]_i_1/O
-                         net (fo=1, routed)           1.084     1.349    grp_fd_Pipeline_VITIS_LOOP_35_1_fu_806/E[0]_bufg_place
-    BUFGCE_X0Y170        BUFGCE (Prop_BUFCE_BUFGCE_I_O)
-                                                      0.028     1.377 r  grp_fd_Pipeline_VITIS_LOOP_35_1_fu_806/q1[7]_i_1_bufg_place/O
-                         net (fo=1024, routed)        1.256     2.633    p_output_data_34_U/E[0]
-    SLICE_X147Y415       FDRE                                         r  p_output_data_34_U/q1_reg[2]/CE
+    SLICE_X48Y311        FDSE (Prop_EFF_SLICEM_C_Q)
+                                                      0.076     0.106 r  regslice_both_in_1_U/FSM_sequential_state_reg[0]/Q
+                         net (fo=516, routed)         2.358     2.464    regslice_both_in_1_U/state__0[0]
+    SLICE_X46Y330        LUT4 (Prop_B6LUT_SLICEM_I0_O)
+                                                      0.149     2.613 r  regslice_both_in_1_U/data_p1[478]_i_1/O
+                         net (fo=1, routed)           0.059     2.672    regslice_both_in_1_U/p_0_in[478]
+    SLICE_X46Y330        FDRE                                         r  regslice_both_in_1_U/data_p1_reg[478]/D
   -------------------------------------------------------------------    -------------------
 
                          (clock ap_clk rise edge)     3.106     3.106 r  
                                                       0.000     3.106 r  ap_clk (IN)
-                         net (fo=7741, unset)         0.020     3.126    p_output_data_34_U/ap_clk
-    SLICE_X147Y415       FDRE                                         r  p_output_data_34_U/q1_reg[2]/C
-                         clock pessimism              0.000     3.126    
-                         clock uncertainty           -0.035     3.091    
-    SLICE_X147Y415       FDRE (Setup_BFF2_SLICEL_C_CE)
-                                                     -0.059     3.032    p_output_data_34_U/q1_reg[2]
+                         net (fo=5698, unset)         0.021     3.127    regslice_both_in_1_U/ap_clk
+    SLICE_X46Y330        FDRE                                         r  regslice_both_in_1_U/data_p1_reg[478]/C
+                         clock pessimism              0.000     3.127    
+                         clock uncertainty           -0.035     3.092    
+    SLICE_X46Y330        FDRE (Setup_BFF_SLICEM_C_D)
+                                                      0.025     3.117    regslice_both_in_1_U/data_p1_reg[478]
   -------------------------------------------------------------------
-                         required time                          3.032    
-                         arrival time                          -2.633    
+                         required time                          3.117    
+                         arrival time                          -2.672    
   -------------------------------------------------------------------
-                         slack                                  0.399    
+                         slack                                  0.444    
 
 
 
@@ -260,18 +257,18 @@ Slack (MET) :             0.399ns  (required time - arrival time)
 
 Min Delay Paths
 --------------------------------------------------------------------------------------
-Slack (MET) :             0.041ns  (arrival time - required time)
-  Source:                 p_output_data_42_U/q1_reg[0]/C
+Slack (MET) :             0.042ns  (arrival time - required time)
+  Source:                 regslice_both_in_1_U/data_p1_reg[140]/C
                             (rising edge-triggered cell FDRE clocked by ap_clk  {rise@0.000ns fall@1.553ns period=3.106ns})
-  Destination:            out_2_TDATA_reg_reg[336]/D
+  Destination:            grp_fd_Pipeline_VITIS_LOOP_35_1_fu_678/p_0_0_173621166_fu_640_reg[4]/D
                             (rising edge-triggered cell FDRE clocked by ap_clk  {rise@0.000ns fall@1.553ns period=3.106ns})
   Path Group:             ap_clk
   Path Type:              Hold (Min at Fast Process Corner)
   Requirement:            0.000ns  (ap_clk rise@0.000ns - ap_clk rise@0.000ns)
-  Data Path Delay:        0.094ns  (logic 0.037ns (39.425%)  route 0.057ns (60.575%))
+  Data Path Delay:        0.094ns  (logic 0.038ns (40.426%)  route 0.056ns (59.574%))
   Logic Levels:           0  
-  Clock Path Skew:        0.006ns (DCD - SCD - CPR)
-    Destination Clock Delay (DCD):    0.019ns
+  Clock Path Skew:        0.005ns (DCD - SCD - CPR)
+    Destination Clock Delay (DCD):    0.018ns
     Source Clock Delay      (SCD):    0.013ns
     Clock Pessimism Removal (CPR):    -0.000ns
 
@@ -279,27 +276,27 @@ Slack (MET) :             0.041ns  (arrival time - required time)
   -------------------------------------------------------------------    -------------------
                          (clock ap_clk rise edge)     0.000     0.000 r  
                                                       0.000     0.000 r  ap_clk (IN)
-                         net (fo=7741, unset)         0.013     0.013    p_output_data_42_U/ap_clk
-    SLICE_X137Y421       FDRE                                         r  p_output_data_42_U/q1_reg[0]/C
+                         net (fo=5698, unset)         0.013     0.013    regslice_both_in_1_U/ap_clk
+    SLICE_X44Y295        FDRE                                         r  regslice_both_in_1_U/data_p1_reg[140]/C
   -------------------------------------------------------------------    -------------------
-    SLICE_X137Y421       FDRE (Prop_FFF_SLICEM_C_Q)
-                                                      0.037     0.050 r  p_output_data_42_U/q1_reg[0]/Q
-                         net (fo=3, routed)           0.057     0.107    p_output_data_42_q1[0]
-    SLICE_X138Y421       FDRE                                         r  out_2_TDATA_reg_reg[336]/D
+    SLICE_X44Y295        FDRE (Prop_CFF_SLICEM_C_Q)
+                                                      0.038     0.051 r  regslice_both_in_1_U/data_p1_reg[140]/Q
+                         net (fo=1, routed)           0.056     0.107    grp_fd_Pipeline_VITIS_LOOP_35_1_fu_678/p_0_0_634541258_fu_824_reg[7]_0[140]
+    SLICE_X45Y295        FDRE                                         r  grp_fd_Pipeline_VITIS_LOOP_35_1_fu_678/p_0_0_173621166_fu_640_reg[4]/D
   -------------------------------------------------------------------    -------------------
 
                          (clock ap_clk rise edge)     0.000     0.000 r  
                                                       0.000     0.000 r  ap_clk (IN)
-                         net (fo=7741, unset)         0.019     0.019    ap_clk
-    SLICE_X138Y421       FDRE                                         r  out_2_TDATA_reg_reg[336]/C
-                         clock pessimism              0.000     0.019    
-    SLICE_X138Y421       FDRE (Hold_GFF2_SLICEL_C_D)
-                                                      0.047     0.066    out_2_TDATA_reg_reg[336]
+                         net (fo=5698, unset)         0.018     0.018    grp_fd_Pipeline_VITIS_LOOP_35_1_fu_678/ap_clk
+    SLICE_X45Y295        FDRE                                         r  grp_fd_Pipeline_VITIS_LOOP_35_1_fu_678/p_0_0_173621166_fu_640_reg[4]/C
+                         clock pessimism              0.000     0.018    
+    SLICE_X45Y295        FDRE (Hold_AFF2_SLICEL_C_D)
+                                                      0.047     0.065    grp_fd_Pipeline_VITIS_LOOP_35_1_fu_678/p_0_0_173621166_fu_640_reg[4]
   -------------------------------------------------------------------
-                         required time                         -0.066    
+                         required time                         -0.065    
                          arrival time                           0.107    
   -------------------------------------------------------------------
-                         slack                                  0.041    
+                         slack                                  0.042    
 
 
 
@@ -312,10 +309,10 @@ Waveform(ns):       { 0.000 1.553 }
 Period(ns):         3.106
 Sources:            { ap_clk }
 
-Check Type        Corner  Lib Pin     Reference Pin  Required(ns)  Actual(ns)  Slack(ns)  Location        Pin
-Min Period        n/a     RAMD32/CLK  n/a            1.064         3.106       2.042      SLICE_X141Y425  p_output_data_100_U/ram_reg_0_15_0_7/RAMA/CLK
-Low Pulse Width   Slow    RAMD32/CLK  n/a            0.532         1.553       1.021      SLICE_X141Y425  p_output_data_100_U/ram_reg_0_15_0_7/RAMA/CLK
-High Pulse Width  Slow    RAMD32/CLK  n/a            0.532         1.553       1.021      SLICE_X141Y425  p_output_data_100_U/ram_reg_0_15_0_7/RAMA/CLK
+Check Type        Corner  Lib Pin  Reference Pin  Required(ns)  Actual(ns)  Slack(ns)  Location       Pin
+Min Period        n/a     FDSE/C   n/a            0.550         3.106       2.556      SLICE_X48Y310  ap_CS_fsm_reg[0]/C
+Low Pulse Width   Slow    FDSE/C   n/a            0.275         1.553       1.278      SLICE_X48Y310  ap_CS_fsm_reg[0]/C
+High Pulse Width  Slow    FDSE/C   n/a            0.275         1.553       1.278      SLICE_X48Y310  ap_CS_fsm_reg[0]/C
 
 
 
