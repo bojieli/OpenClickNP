@@ -1,5 +1,8 @@
 # OpenClickNP
 
+[![CI](https://github.com/bojieli/OpenClickNP/actions/workflows/ci.yml/badge.svg)](https://github.com/bojieli/OpenClickNP/actions/workflows/ci.yml)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+
 A clean-room, open-source implementation of the system described in:
 
 > Bojie Li, Kun Tan, Layong (Larry) Luo, Yanqing Peng, Renqian Luo,
@@ -19,7 +22,11 @@ licensed under Apache-2.0.
 
 ## Status
 
-v0.1 — under active development. See `PLAN.md` for the full design.
+v0.1. The compiler, runtime, element library (123 elements across 9
+categories), and 47 end-to-end applications are in place; all 47 apps
+pass place-and-route on the U50 die at 322 MHz with zero CDC violations.
+See [`FINAL_REPORT.md`](FINAL_REPORT.md) for measured numbers and
+[`PLAN.md`](PLAN.md) for the full design.
 
 ## Quick start
 
@@ -34,7 +41,7 @@ v0.1 — under active development. See `PLAN.md` for the full design.
 ### Build the compiler and runtime
 
 ```bash
-git clone https://example.invalid/OpenClickNP.git
+git clone https://github.com/bojieli/OpenClickNP.git
 cd OpenClickNP
 cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j
@@ -42,7 +49,8 @@ ctest --test-dir build
 ```
 
 This builds `openclicknp-cc`, the runtime library, and runs the L1 unit
-+ L2 emulator tests.
++ L2 emulator tests (≈135 tests; the SystemC/Verilator smokes auto-enable
+when those tools are installed).
 
 ### Compile and simulate an example (no FPGA needed)
 
@@ -73,15 +81,24 @@ Output: `build/PassTraffic/PassTraffic.xclbin`.
 ```
 compiler/    — openclicknp-cc, the .clnp DSL → multi-target compiler
 runtime/     — libopenclicknp_runtime, host-side library
-elements/    — standard element library (Pass, Tee, Counter, ...)
+elements/    — standard element library (123 elements, 9 categories)
 shell/       — Vivado/Vitis platform integration for U50 (XDMA + QDMA)
-tests/       — L1 unit, L2 emulator, golden references, PCAPs
-examples/    — end-to-end demo applications
+tests/       — L1 unit, L2 emulator, per-element behavioral tests, smokes
+examples/    — 47 end-to-end demo applications
+eval/        — reproducible HLS / P&R / CDC / throughput / latency runs
 scripts/     — build / run / sim / platform-install scripts
 docs/        — architecture, compiler internals, language reference
 ```
 
-See [`PLAN.md`](PLAN.md) for the full design plan.
+## Documentation
+
+- [`docs/getting_started.md`](docs/getting_started.md) — zero to bitstream
+- [`docs/language.md`](docs/language.md) — `.clnp` DSL reference
+- [`docs/architecture.md`](docs/architecture.md) — system layers
+- [`docs/compiler_internals.md`](docs/compiler_internals.md) — compiler walkthrough
+- [`docs/verification_levels.md`](docs/verification_levels.md) — L1–L5 test pyramid
+- [`PLAN.md`](PLAN.md) — full design plan
+- [`FINAL_REPORT.md`](FINAL_REPORT.md) — measured results (resources, P&R, CDC)
 
 ## License
 

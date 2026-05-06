@@ -32,14 +32,17 @@ And install Vivado/Vitis 2025.2 from AMD (see their official installer).
 ## 2. Build the toolchain
 
 ```bash
-git clone https://example.invalid/OpenClickNP.git
+git clone https://github.com/bojieli/OpenClickNP.git
 cd OpenClickNP
 cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j
 ctest --test-dir build --output-on-failure
 ```
 
-Expect 9 tests to pass. If any fail, it's a bug — please file an issue.
+Expect ≈135 tests to pass: 5 compiler-frontend unit tests, 4 runtime
+unit tests, 1 e2e integration test, 123 per-element behavioral tests,
+and 2 simulator-smoke tests (SystemC, Verilator) that auto-enable when
+those tools are installed. If any fail, it's a bug — please file an issue.
 
 ## 3. Compile your first design
 

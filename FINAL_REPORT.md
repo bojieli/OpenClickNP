@@ -9,7 +9,7 @@ scratch on the Xilinx 2025.2 toolchain targeting the Alveo U50 die
 
 | Metric | Value |
 |---|---|
-| Source files in repo | 600+ |
+| Source files in repo | 1,178 (484 source/build files; remainder are generated reports + golden references) |
 | C++ LOC (excl. generated) | 7,000+ |
 | `.clnp` element files | **123** across 9 categories |
 | End-to-end applications | **47** |
@@ -58,11 +58,14 @@ goes through `vitis_hls csynth_design` + Vivado `synth_design` +
 target part:       xcu50-fsvh2104-2-e (Alveo U50, Virtex UltraScale+ HBM)
 target clock:      322.265625 MHz (3.106 ns)
 parallelism:       4 simultaneous Vivado workers
-total wall-clock:  ≈ 30 minutes for all 16 apps on a 32-core host
+total wall-clock:  ≈ 90 minutes for all 47 apps on a 32-core host
 flow:              vitis_hls -> Vivado synth -> opt -> place -> route
                    per-kernel out_of_context, with full report_cdc /
                    report_timing_summary / report_utilization
 ```
+
+A representative subset of the 47 apps; the complete table is at
+`eval/reports/pnr_summary.csv`.
 
 | App | # Kernels | LUT | FF | DSP | BRAM | WNS (ns) | WHS (ns) | CDC errors |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -85,10 +88,10 @@ flow:              vitis_hls -> Vivado synth -> opt -> place -> route
 
 ### Highlights
 
-- **All 16 applications close timing positively** at the 322.265625 MHz
+- **All 47 applications close timing positively** at the 322.265625 MHz
   user clock, with WNS slack ranging from +0.072 ns (Firewall) up to
-  +0.545 ns (PacketLogger / NVGRE_Decap / RateLimiter / others).
-- **All 16 close hold timing** (WHS ≥ 0).
+  +0.569 ns (smallest 2-kernel apps).
+- **All 47 close hold timing** (WHS ≥ 0).
 - **No application has any critical or warning CDC violation** in
   Vivado's `report_cdc` output.
 - **RateLimiter** initially showed WNS = −0.207 ns. The P&R flow
@@ -109,8 +112,8 @@ flow:              vitis_hls -> Vivado synth -> opt -> place -> route
 `report_cdc` was run on every synthesized kernel. Result summary:
 
 ```
-Apps:              16
-Kernels analyzed:  ~50 (per-app kernel counts: 2..5)
+Apps:              47
+Kernels analyzed:  492 (per-app kernel counts: 2..15)
 Critical CDC:      0
 Warning CDC:       0
 ```
@@ -147,7 +150,7 @@ tests alone could not catch. All four are fixed in the compiler:
    rejects array indexing on a scalar AXI-Lite port. The signal
    interface is now a `SignalIO` struct passed by reference with
    `s_axilite` interface; HLS synthesizes each scalar field as its
-   own AXI-Lite register. After this fix, **all 16 applications
+   own AXI-Lite register. After this fix, **all 47 applications
    complete `route_design` cleanly**.
 
 ## 6. Reproducibility
@@ -164,13 +167,14 @@ cmake --build build -j
 ctest --test-dir build --output-on-failure
 ./scripts/run_all_tests.sh
 
-# L3: per-element Vitis HLS resource sweep (~30 min for 123 elements)
-source /home/ubuntu/Xilinx/2025.2/Vivado/settings64.sh
+# L3: per-element Vitis HLS resource sweep (~30 min for 123 elements).
+# Set XILINX_DIR if Vivado/Vitis is not at the default /opt/Xilinx/2025.2.
+source "${XILINX_DIR:-/opt/Xilinx/2025.2}/Vivado/settings64.sh"
 ./eval/resource_usage/run.sh
 ./eval/throughput/run.sh
 ./eval/latency/run.sh
 
-# L5: per-application Vivado P&R on real U50 die (~30 min for 16 apps
+# L5: per-application Vivado P&R on real U50 die (~30 min for 47 apps
 # at 4-way parallelism on a 32-core host)
 ./eval/place_route/run.sh
 
@@ -194,14 +198,11 @@ All reports land in `eval/reports/`:
   `scripts/build/implement.sh` pipeline is wired for that step and
   will produce a deployable `.xclbin` once the platform package is
   in place.
-- **ACL_TCAM (1 of 47 apps)** does not complete Vitis HLS C-synthesis:
-  the `RegTCAM @ (acl)` kernel — a 64-entry TCAM with a signal
-  handler — sends HLS into a long-running pipelining heuristic that
-  doesn't terminate within the available time budget. The same
-  RegTCAM element synthesizes cleanly when not @-marked (it appears
-  in the resource_usage CSV with real numbers). Workaround: hand-add
-  `#pragma HLS PIPELINE off` to the signal handler, or shrink the
-  TCAM to 32 entries. The other 46 apps are P&R-clean.
+- ~~**ACL_TCAM** doesn't complete HLS C-synthesis: the `RegTCAM @ (acl)`
+  kernel sent HLS into a long-running pipelining heuristic.~~ **Fixed.**
+  Restructured `RegTCAM`'s handler to a parallel-match with
+  `#pragma HLS UNROLL` and reduced ENTRIES from 64 to 32; ACL_TCAM now
+  synthesizes and P&Rs cleanly (4 kernels, WNS = +0.254 ns).
 - ~~**RateLimiter timing closure.** WNS = −0.207 ns flags a real
   timing violation that needs either a clock bump or one extra
   pipeline stage.~~ **Fixed.** Pipelined the token-bucket update; new
@@ -214,18 +215,18 @@ All reports land in `eval/reports/`:
 ## 8. Repository tour
 
 ```
-OpenClickNP/                  https://github.com/bojieli/OpenClickNP (private)
+OpenClickNP/                  https://github.com/bojieli/OpenClickNP
 ├── PLAN.md                   — clean-room design plan (paper-only contract)
 ├── FINAL_REPORT.md           — this document
 ├── README.md, LICENSE        — Apache-2.0
 ├── compiler/                 — openclicknp-cc compiler (~5k LOC C++17)
 ├── runtime/                  — libopenclicknp_runtime + tests
 ├── elements/                 — 123 .clnp elements in 9 categories
-├── examples/                 — 16 end-to-end applications
+├── examples/                 — 47 end-to-end applications
 ├── shell/                    — U50/XDMA + U50/QDMA platform integration
-├── tests/                    — L1 unit + L2 e2e + integration
+├── tests/                    — L1 unit + L2 e2e + per-element + smokes
 ├── scripts/                  — build / sim / run / platform shell scripts
 ├── docs/                     — architecture, language, internals, getting-started
 ├── eval/                     — eval suite + reports/
-└── ci/                       — GitHub Actions config
+└── .github/workflows/        — GitHub Actions CI
 ```

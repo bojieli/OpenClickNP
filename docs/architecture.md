@@ -73,10 +73,23 @@ kernels exist, which have signal handlers, etc.
 
 ### 3. Element library (`elements/`)
 
-Standard `.clnp` files defining the building blocks the paper describes:
-`Pass`, `Tee`, `Mux`, `Demux`, `Counter`, `Idle`, `DropElem`, `Fork`,
-`HashTable`, `FlowTupleParser`, `IPChecksum`, `RateLimiter`. Each is a
-single self-contained file with `.state/.init/.handler/.signal` blocks.
+123 standard `.clnp` files organized into 9 categories that mirror the
+paper's taxonomy:
+
+| Category | Examples |
+| --- | --- |
+| `core/` | `Pass`, `Tee`, `Mux`, `Demux`, `Counter`, `Idle`, `DropElem`, `Fork` |
+| `lookups/` | `HashTable`, `CuckooHash`, `LPM_Tree`, `FlowCache`, `RegTCAM` |
+| `parsers/` | `FlowTupleParser`, `IP_Parser`, `TCP_Parser`, `UDP_Parser` |
+| `actions/` | `IPChecksum`, `TCPChecksum`, `NVGRE_Encap`, `PacketModifier` |
+| `crypto/` | `AES_CTR`, `AES_ECB`, `SHA1`, `Mult1024`, `Montgomery` |
+| `queues/` | `MinHeap`, `PriorityQueue`, `RateLimit`, `ChannelShaping` |
+| `traffic/` | `TrafficGen`, `PacketGen`, `RateLimiter`, `RoCE_Gen` |
+| `networking/` | `L4LoadBalancer`, `Firewall_5tuple`, `Regex` |
+| `testing/` | `LatencyTest`, `DelayTester`, `XorInputs` |
+
+Each is a single self-contained file with `.state/.init/.handler/.signal`
+blocks.
 
 ### 4. Shell (`shell/`)
 
@@ -95,8 +108,11 @@ omitted — each slot becomes a real QDMA queue.
 
 ### 5. Examples (`examples/`)
 
-End-to-end demos: `PassTraffic` (smallest meaningful demo) and
-`Firewall` (5-tuple filter with host-installed rules via signal RPC).
+47 end-to-end applications, ranging from the smallest meaningful demo
+(`PassTraffic`) to full network functions (`Firewall` 5-tuple filter
+with host-installed rules via signal RPC, `ECMP_Router`, `L4LoadBalancer`,
+`NVGRE_Gateway`, `IPsec_ESP`, `RoCE_Gateway`, `AES_Pipeline_4x`, etc.).
+Every element in the library is imported by ≥ 1 application.
 
 ### 6. Scripts (`scripts/`)
 

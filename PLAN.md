@@ -759,12 +759,12 @@ OpenClickNP/
 ├── shell/                — U50 platform integration
 │   ├── u50_xdma/         — XDMA shell + ONS glue
 │   └── u50_qdma/         — QDMA shell + ONS glue
-├── tests/                — L1/L2 tests, goldens, PCAPs
-├── examples/             — PassTraffic, Firewall, L4LoadBalancer
+├── tests/                — L1/L2 tests, per-element behavioral, smokes
+├── examples/             — end-to-end applications
 ├── scripts/              — build/run/sim/platform shell scripts
-├── docs/                 — architecture, compiler internals, spec
-├── ci/                   — GitHub Actions / Jenkins configs
-├── third_party/          — git submodules (Open NIC Shell, etc.)
+├── docs/                 — architecture, compiler internals, language ref
+├── eval/                 — reproducible HLS / P&R / CDC / throughput / latency
+├── .github/workflows/    — GitHub Actions CI
 ├── PLAN.md               — this document
 ├── README.md
 ├── LICENSE               — Apache-2.0
