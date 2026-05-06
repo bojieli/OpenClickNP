@@ -9,17 +9,18 @@ scratch on the Xilinx 2025.2 toolchain targeting the Alveo U50 die
 
 | Metric | Value |
 |---|---|
-| Source files in repo | 500+ |
-| C++ LOC (excl. generated) | 6,500+ |
+| Source files in repo | 600+ |
+| C++ LOC (excl. generated) | 7,000+ |
 | `.clnp` element files | **123** across 9 categories |
 | End-to-end applications | **47** |
-| Tests in CI | **87** (100% pass — 10 baseline + 77 element behavioral) |
+| Tests in CI | **135** (100% pass: 10 baseline + 123 element + 2 simulator-smoke) |
 | Elements with real Vitis HLS numbers | **123 / 123** |
 | Elements imported by ≥ 1 application | **123 / 123** (100%) |
-| Applications fully P&R'd on real U50 die | **46 / 47** |
-| Apps with WNS ≥ 0 at 322 MHz | **46 / 46** ✓ |
-| Apps with WHS ≥ 0 (hold met) | **46 / 46** ✓ |
-| Apps with CDC violations | **0 / 46** ✓ |
+| Elements with behavioral unit tests | **123 / 123** (100%) |
+| Applications fully P&R'd on real U50 die | **47 / 47** ✓ |
+| Apps with WNS ≥ 0 at 322 MHz | **47 / 47** ✓ |
+| Apps with WHS ≥ 0 (hold met) | **47 / 47** ✓ |
+| Apps with CDC violations | **0 / 47** ✓ |
 
 ## 2. Per-element resource estimates (Vitis HLS C-synthesis)
 
