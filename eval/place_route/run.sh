@@ -18,8 +18,9 @@ SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck disable=SC1091
 source "${SCRIPT_DIR}/../../scripts/lib/common.sh"
 
-if [[ -f /home/ubuntu/Xilinx/2025.2/Vivado/settings64.sh ]]; then
-    source /home/ubuntu/Xilinx/2025.2/Vivado/settings64.sh >/dev/null 2>&1 || true
+if [[ -f "${XILINX_DIR}/Vivado/settings64.sh" ]]; then
+    # shellcheck disable=SC1091
+    source "${XILINX_DIR}/Vivado/settings64.sh" >/dev/null 2>&1 || true
 fi
 
 PNR_REPORT="${OPENCLICKNP_ROOT}/eval/reports/pnr"
@@ -96,7 +97,7 @@ csynth_design
 exit
 EOF
         if ! (cd "${app_work}" && \
-              /home/ubuntu/Xilinx/2025.2/Vitis/bin/loader -exec vitis_hls \
+              "${XILINX_DIR}/Vitis/bin/loader" -exec vitis_hls \
               -f "${hls_tcl}" >"${app_work}/${k}_hls.log" 2>&1); then
             warn "  ${app}/${k}: HLS failed"
             continue

@@ -14,8 +14,9 @@ SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck disable=SC1091
 source "${SCRIPT_DIR}/../../scripts/lib/common.sh"
 
-if [[ -f /home/ubuntu/Xilinx/2025.2/Vivado/settings64.sh ]]; then
-    source /home/ubuntu/Xilinx/2025.2/Vivado/settings64.sh >/dev/null 2>&1 || true
+if [[ -f "${XILINX_DIR}/Vivado/settings64.sh" ]]; then
+    # shellcheck disable=SC1091
+    source "${XILINX_DIR}/Vivado/settings64.sh" >/dev/null 2>&1 || true
 fi
 
 REPORT_DIR="${OPENCLICKNP_ROOT}/eval/reports"
@@ -25,7 +26,7 @@ mkdir -p "${REPORT_DIR}" "${WORK_DIR}"
 CSV="${REPORT_DIR}/resource_usage.csv"
 echo "element,LUT,FF,DSP,BRAM,Fmax_MHz,II" >"${CSV}"
 
-HLS_LAUNCHER="/home/ubuntu/Xilinx/2025.2/Vitis/bin/loader"
+HLS_LAUNCHER="${XILINX_DIR}/Vitis/bin/loader"
 TARGET_PART="${TARGET_PART:-xcvu9p-flga2104-2-i}"
 CLOCK_NS="${CLOCK_NS:-3.106}"   # 322.265625 MHz
 

@@ -10,7 +10,7 @@ export OPENCLICKNP_ROOT
 
 # Pinned platform/board defaults.
 : "${VITIS_VERSION:=2025.2}"
-: "${XILINX_DIR:=/home/ubuntu/Xilinx/${VITIS_VERSION}}"
+: "${XILINX_DIR:=/opt/Xilinx/${VITIS_VERSION}}"
 : "${PLATFORM:=u50_xdma}"
 : "${PLATFORM_VITIS:=xilinx_u50_gen3x16_xdma_5_202210_1}"
 : "${USER_CLOCK_HZ:=322265625}"

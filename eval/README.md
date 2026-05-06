@@ -30,8 +30,9 @@ eval/
 ./eval/throughput/run.sh
 ./eval/latency/run.sh
 
-# Vitis-HLS-based experiments (Vitis 2025.2 required)
-source /home/ubuntu/Xilinx/2025.2/Vitis/settings64.sh
+# Vitis-HLS-based experiments (Vitis 2025.2 required).
+# Either source settings64.sh yourself or set XILINX_DIR (default: /opt/Xilinx/2025.2).
+source "${XILINX_DIR:-/opt/Xilinx/2025.2}/Vitis/settings64.sh"
 ./eval/resource_usage/run.sh
 
 # CDC + timing closure (Vivado required, hours)

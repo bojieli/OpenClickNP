@@ -189,7 +189,7 @@ Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2025 Advanc
 | Tool Version      : Vivado v.2025.2 (lin64) Build 6299465 Fri Nov 14 12:34:56 MST 2025
 | Date              : Tue May  5 03:55:52 2026
 | Host              : ubuntu running 64-bit Ubuntu 22.04.5 LTS
-| Command           : report_cdc -severity Info -file /home/ubuntu/OpenClickNP/eval/reports/cdc_status_block.rpt
+| Command           : report_cdc -severity Info -file ${OPENCLICKNP_ROOT}/eval/reports/cdc_status_block.rpt
 | Design            : openclicknp_status
 | Device            : xcu50-fsvh2104
 | Speed File        : -2  PRODUCTION 1.30 05-01-2022
