@@ -1,5 +1,16 @@
 # SPDX-License-Identifier: Apache-2.0
-# GitHub Actions config for OpenClickNP. Place at .github/workflows/ci.yml.
+# GitHub Actions config for OpenClickNP.
+#
+# What this CI exercises (L1, L2 of the test pyramid):
+#   • L1 unit tests for compiler frontend, runtime, and per-element behavior.
+#   • L1 simulator smokes — SystemC + Verilator lint of the codegen output —
+#     auto-enabled by ctest when the tools are installed below.
+#   • L2 software-emulator end-to-end runs of representative examples.
+#
+# What this CI does NOT exercise: L3 (Vitis HLS cosim), L4 (full Verilator
+# sim of the HLS RTL — needs HLS to have run first), and L5 (real Alveo U50)
+# require AMD/Xilinx tooling and/or hardware. See docs/verification_levels.md.
+
 name: CI
 
 on:
@@ -9,13 +20,17 @@ on:
     branches: [main]
 
 jobs:
-  unit:
-    name: L1 unit tests
+  unit-and-smokes:
+    name: L1 unit + simulator smokes
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - name: install build deps
-        run: sudo apt-get update && sudo apt-get install -y cmake g++ ninja-build
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake g++ ninja-build \
+            verilator libsystemc-dev
       - name: configure
         run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
       - name: build
@@ -26,7 +41,7 @@ jobs:
   emulator:
     name: L2 software-emulator examples
     runs-on: ubuntu-22.04
-    needs: unit
+    needs: unit-and-smokes
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt-get update && sudo apt-get install -y cmake g++ ninja-build
@@ -34,15 +49,4 @@ jobs:
       - name: PassTraffic SW-emu
         run: ./scripts/sim/run_emu.sh examples/PassTraffic
       - name: Firewall SW-emu
-        run: ./scripts/sim/run_emu.sh examples/Firewall || true   # phase-2 example
-
-  verilator:
-    name: L4 Verilator full-system sim
-    runs-on: ubuntu-22.04
-    needs: emulator
-    if: false   # enable once Verilator >= 5.018 is on the runner image
-    steps:
-      - uses: actions/checkout@v4
-      - run: sudo apt-get update && sudo apt-get install -y cmake g++ ninja-build verilator
-      - run: cmake -B build -G Ninja && cmake --build build
-      - run: ./scripts/sim/run_verilator.sh examples/PassTraffic
+        run: ./scripts/sim/run_emu.sh examples/Firewall
