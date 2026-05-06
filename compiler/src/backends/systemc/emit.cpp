@@ -61,8 +61,12 @@ void emitKernelModule(std::ostream& os, const be::KernelHls& k) {
     os << "        openclicknp::port_mask_t _ret = openclicknp::PORT_ALL;\n";
     os << "        openclicknp::port_mask_t _input_port = 0, _output_port = 0,"
        << " _output_failed = 0, _output_success = 0;\n";
-    os << "        openclicknp::flit_t _input_data[OPENCLICKNP_MAX_PORTS+1] = {};\n";
-    os << "        openclicknp::flit_t _output_data[OPENCLICKNP_MAX_PORTS+1] = {};\n";
+    {
+        size_t n_in_max  = std::max<size_t>(1, k.in_ports.size());
+        size_t n_out_max = std::max<size_t>(1, k.out_ports.size());
+        os << "        openclicknp::flit_t _input_data[" << (n_in_max + 1) << "] = {};\n";
+        os << "        openclicknp::flit_t _output_data[" << (n_out_max + 1) << "] = {};\n";
+    }
     os << "        while (true) {\n";
     os << "            wait(1, SC_NS);  // 1 cycle = 1 ns @ 1 GHz scaled timebase\n";
     for (const auto& p : k.in_ports) {

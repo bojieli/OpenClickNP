@@ -154,8 +154,14 @@ void emitKernel(std::ostream& os, const be::Build& build,
     os << "    openclicknp::port_mask_t _ret = openclicknp::PORT_ALL;\n";
     os << "    openclicknp::port_mask_t _input_port = 0, "
                    "_output_port = 0, _output_failed = 0, _output_success = 0;\n";
-    os << "    openclicknp::flit_t _input_data[OPENCLICKNP_MAX_PORTS+1];\n";
-    os << "    openclicknp::flit_t _output_data[OPENCLICKNP_MAX_PORTS+1];\n";
+    // Size the per-port flit arrays to the actual port count (+1 for the
+    // 1-based indexing the user-side macros use). Saves ~80% of the
+    // register/LUT bloat in the generated kernels for typical 1-in/1-out
+    // elements.
+    size_t n_in_max  = std::max<size_t>(1, k.in_ports.size());
+    size_t n_out_max = std::max<size_t>(1, k.out_ports.size());
+    os << "    openclicknp::flit_t _input_data[" << (n_in_max + 1) << "];\n";
+    os << "    openclicknp::flit_t _output_data[" << (n_out_max + 1) << "];\n";
     if (k.has_signal) {
         os << "    openclicknp::ClSignal event{}, outevent{};\n";
         os << "    bool _has_signal = false;\n";

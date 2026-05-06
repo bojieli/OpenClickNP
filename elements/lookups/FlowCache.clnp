@@ -1,21 +1,51 @@
 // SPDX-License-Identifier: Apache-2.0
-// Auto-generated bulk element stub for OpenClickNP.
+// FlowCache: direct-mapped 1024-entry flow cache.
+//
+// Pipelined design: stage 1 reads the table, stage 2 compares & writes
+// back. This breaks the long combinational path through 64-bit key
+// compare + table update that previously dominated WNS.
 .element FlowCache <1, 1> {
     .state {
         constexpr uint32_t SIZE = 1024;
-        uint64_t key[SIZE], val[SIZE];
-        bool valid[SIZE];
-}
-    .init {for (uint32_t i = 0; i < _state.SIZE; ++i) _state.valid[i] = false;}
+        uint32_t key[SIZE];     // truncated to 32-bit hash key
+        uint32_t val[SIZE];
+        bool     valid[SIZE];
+
+        // Stage-1 -> stage-2 pipeline registers.
+        bool     s1_valid;
+        uint32_t s1_idx;
+        uint32_t s1_key;
+        openclicknp::flit_t s1_flit;
+    }
+    .init {
+        for (uint32_t i = 0; i < _state.SIZE; ++i) _state.valid[i] = false;
+        _state.s1_valid = false;
+    }
     .handler {
-        if (test_input_port(PORT_1)) {
-            openclicknp::flit_t f = read_input_port(PORT_1);
-            uint64_t k = f.get(0);
-            uint32_t h = static_cast<uint32_t>(k) & (_state.SIZE - 1);
-            if (_state.valid[h] && _state.key[h] == k) f.set(2, _state.val[h]);
-            else { _state.key[h] = k; _state.val[h] = 0; _state.valid[h] = true; }
+        // ---- Stage 2: complete previous lookup ----
+        if (_state.s1_valid) {
+            openclicknp::flit_t f = _state.s1_flit;
+            uint32_t i = _state.s1_idx;
+            if (_state.valid[i] && _state.key[i] == _state.s1_key) {
+                f.set(2, _state.val[i]);
+            } else {
+                _state.key[i]   = _state.s1_key;
+                _state.val[i]   = 0;
+                _state.valid[i] = true;
+            }
             set_output_port(1, f);
+            _state.s1_valid = false;
+        }
+
+        // ---- Stage 1: latch incoming flit & compute hash ----
+        if (test_input_port(PORT_1) && !_state.s1_valid) {
+            openclicknp::flit_t f = read_input_port(PORT_1);
+            uint32_t k32 = static_cast<uint32_t>(f.get(0));
+            _state.s1_key   = k32;
+            _state.s1_idx   = k32 & (_state.SIZE - 1);
+            _state.s1_flit  = f;
+            _state.s1_valid = true;
         }
         return PORT_1;
-}
+    }
 }
