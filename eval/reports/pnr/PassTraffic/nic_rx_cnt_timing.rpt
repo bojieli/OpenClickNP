@@ -1,7 +1,7 @@
 Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2025 Advanced Micro Devices, Inc. All Rights Reserved.
 --------------------------------------------------------------------------------------------------------------------------------------------------
 | Tool Version      : Vivado v.2025.2 (lin64) Build 6299465 Fri Nov 14 12:34:56 MST 2025
-| Date              : Tue May  5 15:23:12 2026
+| Date              : Wed May  6 04:44:52 2026
 | Host              : ubuntu running 64-bit Ubuntu 22.04.5 LTS
 | Command           : report_timing_summary -file /home/ubuntu/OpenClickNP/eval/reports/pnr/PassTraffic/nic_rx_cnt_timing.rpt
 | Design            : nic_rx_cnt
@@ -260,7 +260,7 @@ Min Delay Paths
 Slack (MET) :             0.039ns  (arrival time - required time)
   Source:                 regslice_both_in_1_U/data_p1_reg[282]/C
                             (rising edge-triggered cell FDRE clocked by ap_clk  {rise@0.000ns fall@1.553ns period=3.106ns})
-  Destination:            grp_nic_rx_cnt_Pipeline_VITIS_LOOP_58_1_fu_64/p_0_0_353981170_fu_718_reg[2]/D
+  Destination:            grp_nic_rx_cnt_Pipeline_VITIS_LOOP_60_1_fu_64/p_0_0_353981170_fu_718_reg[2]/D
                             (rising edge-triggered cell FDRE clocked by ap_clk  {rise@0.000ns fall@1.553ns period=3.106ns})
   Path Group:             ap_clk
   Path Type:              Hold (Min at Fast Process Corner)
@@ -281,17 +281,17 @@ Slack (MET) :             0.039ns  (arrival time - required time)
   -------------------------------------------------------------------    -------------------
     SLICE_X152Y350       FDRE (Prop_FFF_SLICEM_C_Q)
                                                       0.037     0.050 r  regslice_both_in_1_U/data_p1_reg[282]/Q
-                         net (fo=1, routed)           0.055     0.105    grp_nic_rx_cnt_Pipeline_VITIS_LOOP_58_1_fu_64/p_0_0_634541226_fu_830_reg[7]_0[282]
-    SLICE_X153Y350       FDRE                                         r  grp_nic_rx_cnt_Pipeline_VITIS_LOOP_58_1_fu_64/p_0_0_353981170_fu_718_reg[2]/D
+                         net (fo=1, routed)           0.055     0.105    grp_nic_rx_cnt_Pipeline_VITIS_LOOP_60_1_fu_64/p_0_0_634541226_fu_830_reg[7]_0[282]
+    SLICE_X153Y350       FDRE                                         r  grp_nic_rx_cnt_Pipeline_VITIS_LOOP_60_1_fu_64/p_0_0_353981170_fu_718_reg[2]/D
   -------------------------------------------------------------------    -------------------
 
                          (clock ap_clk rise edge)     0.000     0.000 r  
                                                       0.000     0.000 r  ap_clk (IN)
-                         net (fo=3698, unset)         0.019     0.019    grp_nic_rx_cnt_Pipeline_VITIS_LOOP_58_1_fu_64/ap_clk
-    SLICE_X153Y350       FDRE                                         r  grp_nic_rx_cnt_Pipeline_VITIS_LOOP_58_1_fu_64/p_0_0_353981170_fu_718_reg[2]/C
+                         net (fo=3698, unset)         0.019     0.019    grp_nic_rx_cnt_Pipeline_VITIS_LOOP_60_1_fu_64/ap_clk
+    SLICE_X153Y350       FDRE                                         r  grp_nic_rx_cnt_Pipeline_VITIS_LOOP_60_1_fu_64/p_0_0_353981170_fu_718_reg[2]/C
                          clock pessimism              0.000     0.019    
     SLICE_X153Y350       FDRE (Hold_GFF2_SLICEL_C_D)
-                                                      0.047     0.066    grp_nic_rx_cnt_Pipeline_VITIS_LOOP_58_1_fu_64/p_0_0_353981170_fu_718_reg[2]
+                                                      0.047     0.066    grp_nic_rx_cnt_Pipeline_VITIS_LOOP_60_1_fu_64/p_0_0_353981170_fu_718_reg[2]
   -------------------------------------------------------------------
                          required time                         -0.066    
                          arrival time                           0.105    
