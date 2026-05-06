@@ -62,6 +62,20 @@ foreach(BITS 1024 2048 4096)
     list(APPEND RSA_PERF_KERNEL_SRCS ${PATCHED})
 endforeach()
 
+# Comprehensive RSA accuracy test (cross-checks against OpenSSL).
+find_package(OpenSSL 3.0 QUIET)
+if(OpenSSL_FOUND)
+    add_executable(test_rsa_accuracy test_rsa_accuracy.cpp)
+    target_include_directories(test_rsa_accuracy PRIVATE
+        ${CMAKE_SOURCE_DIR}/runtime/include)
+    target_link_libraries(test_rsa_accuracy PRIVATE OpenSSL::Crypto)
+    target_compile_options(test_rsa_accuracy PRIVATE
+        -Wno-unused-function -Wno-unused-variable)
+    add_test(NAME rsa_accuracy
+             COMMAND test_rsa_accuracy)
+    set_tests_properties(rsa_accuracy PROPERTIES TIMEOUT 300)
+endif()
+
 add_executable(test_rsa_perf
     test_rsa_perf.cpp
     ${RSA_PERF_KERNEL_SRCS})

@@ -209,19 +209,40 @@ multiply over the exponent bits. Three variants are shipped (1024,
 
 ### 7.1 Correctness
 
-End-to-end correctness is verified against Python's `pow(m, e, n)` in
-`tests/elements/test_RSA_ModExp_<BITS>.cpp`. The tests build the
-generated SW-emulator kernel, push 4 / 8 / 16 input flits per operand
-on three input ports, drain the same number of output flits, and
-compare the recovered 1024 / 2048 / 4096-bit ciphertext byte-exactly
-against the reference. **All three pass.**
+Per-bit-width testing happens at three layers, with progressively
+tighter assurance:
+
+1. **Per-element smoke** — `tests/elements/test_RSA_ModExp_<BITS>.cpp`
+   pushes one Python-`pow(m, e, n)`-verified known-answer vector
+   through each generated SW-emulator kernel and checks byte-exact
+   match. Three tests (one per bit width). Confirms the codegen path
+   plus the multi-flit operand protocol.
+2. **Stress fuzz vs. independent reference** —
+   `tests/integration/test_rsa_accuracy.cpp` cross-checks
+   `openclicknp::bigint::modexp` against OpenSSL's
+   `BN_mod_exp_mont`. Coverage:
+   - Edge cases at every bit width: m = 0, m = 1, m = n−1 (with
+     e = 2 → +1, e = 3 → −1), e = 0 (→ 1), e = 1 (→ m), e = 2
+     (square), m = e = 0 (→ 1 by convention). All checked at 1024
+     / 2048 / 4096 bits.
+   - **350 uniformly random vectors**: 200 at RSA-1024, 100 at
+     RSA-2048, 50 at RSA-4096, all generated with deterministic
+     RNG (seed = `0xC0DECAFE`/`0xBADBEEF1`/`0xDEADD00D`) so the
+     test is fully reproducible.
+   - Result: **every vector and every edge case agrees byte-exact
+     with OpenSSL**. This catches the class of bug that two
+     pure-Python references could share (the prior tests only
+     compared against Python's `pow()`).
+3. **OpenSSL ENGINE round-trip** — `ssl_integration/test_openssl_engine.c`
+   generates a fresh 2048-bit RSA key, encrypts and decrypts a
+   message via the engine path, asserts byte-exact recovery.
+   ENGINE STATS confirm `bn_mod_exp` was actually invoked.
 
 ```
-138/138 tests passing (was 135; +3 RSA correctness tests)
+139/139 tests passing (was 138; +1 rsa_accuracy stress test).
+The accuracy test runs 350 vectors + 21 edge cases against OpenSSL
+in ~5 s total.
 ```
-
-The standalone bigint library has the same vectors covered in
-`/tmp/bigint_test.cpp`-style smoke tests during development.
 
 ### 7.2 SW-emulator throughput
 
@@ -235,11 +256,24 @@ codegen, AMD/Intel x86_64 host):
 | 4096 |  200 | 0.1229 |  **1,628** | 614 |
 
 Cubic scaling in bit width (≈ 4× per doubling) is what schoolbook
-Montgomery + binary modexp predicts.  For reference, OpenSSL's hand-
-tuned x86 assembly does ~50k / 10k / 2k ops/s at the same bit widths
-on a similar CPU — the from-scratch implementation here lands within
-~2× without any architecture-specific optimization. Raw CSV:
-`eval/reports/rsa_perf.csv`.
+Montgomery + binary modexp predicts.
+
+For honest context against this same i9-13900KS (single-thread
+`openssl speed`, which uses hand-tuned x86 ASM with AVX-512 / ADX):
+
+| Bits | OpenSSL ASM (verify ops/s) | Our SW emu (ops/s) | Ratio |
+|---:|---:|---:|---:|
+| 1024 | 334,953 | 19,039 | **17.6×** slower |
+| 2048 |  96,858 |  5,259 | **18.4×** slower |
+| 4096 |  25,890 |  1,530 | **16.9×** slower |
+
+The earlier "within ~2×" claim was wrong (mis-recalled). Portable
+C++17 from-scratch with `__uint128_t` schoolbook Montgomery is ≈ 17×
+slower than OpenSSL's per-architecture hand-tuned ASM — about what
+you'd expect when you don't get to use ADX/MULX/AVX-512. This is
+fine for a SW-emu used as a correctness reference and as the backing
+for the OpenSSL ENGINE: throughput is gated on the FPGA path, not
+on this code. Raw CSV: `eval/reports/rsa_perf.csv`.
 
 ### 7.3 OpenSSL integration
 
@@ -320,6 +354,88 @@ real engineering, not a fundamental obstacle.
 Reports preserved at `eval/reports/rsa_hls/`:
 `montmul_1024_u_csynth.rpt`, `montmul_1024_mont_mul_csynth.rpt`,
 `montmul_1024_design_size.rpt`.
+
+### 7.5 Batched FPGA performance vs software (the real comparison)
+
+What the throughput question actually depends on: **batch size**.
+The FPGA pipeline only earns its theoretical maximum when enough
+independent modexps are in flight to keep the mont_mul pipeline
+full. Three regimes, all derived from the 266-cycle / II=1 mont_mul
+HLS number, with `n_mm = 24` mont_muls per RSA-1024 modexp at
+e = 65537:
+
+| Regime | Latency | Throughput | When this is what you have |
+|---|---|---|---|
+| **Batch = 1** (latency-bound) | 24 × 266 = 6,384 cycles ≈ 19.83 µs | 50,400 ops/s | Single-tenant TLS handshake, low QPS |
+| **Batch = `ceil(266 / 24) ≈ 12`** (steady state) | unchanged 19.83 µs per op | 322 M / 24 = **13.4 M ops/s** (theoretical max) | TLS load balancer, 100+ concurrent handshakes |
+| **Batch ≫ 12** | grows with batch size | unchanged 13.4 M ops/s | Bulk certificate signing |
+
+The 13.4 M figure is theoretical — it assumes mont_mul actually
+holds II=1 and the 266-cycle pipeline is gap-free. Realistic
+expectations after Vivado place-and-route, clock-domain crossings,
+and PCIe operand staging:
+- Vivado P&R on a fully-unrolled mont_mul on U50 typically loses
+  20–40 % of the HLS-estimated Fmax (HLS 322 MHz → silicon
+  220–280 MHz at the kernel boundary).
+- DSP-rolled-by-2 inner loops (the "fits the U50 budget" point)
+  double the cycle cost: 6.7 M ops/s ceiling, not 13.4 M.
+- PCIe DMA per operand adds ~1 µs of host↔kernel latency that
+  doesn't pipeline through mont_mul; for very small batches this
+  dominates.
+
+So the **realistic, U50-shaped, batched** estimate is **3–7 M
+RSA-1024 ops/s**, not the headline 13.4 M.
+
+#### Comparison to the same workload on this CPU (i9-13900KS)
+
+`openssl speed` on the same host (no FPGA, default OpenSSL with
+hand-tuned x86 ASM and AVX-512) measured 2026-05-06:
+
+| Bits | Single thread (verify ops/s) | 24-thread `openssl speed -multi 24` (verify ops/s) | Single thread (sign ops/s) | 24-thread (sign ops/s) |
+|---:|---:|---:|---:|---:|
+| 1024 | 334,953 | **4,277,211** | 18,892 | 253,382 |
+| 2048 |  96,858 | **1,218,432** |  2,867 |  36,141 |
+| 4096 |  25,890 |   323,855 |    407 |   5,045 |
+
+Putting it together for **RSA-1024 verify**:
+
+| Path | ops/s | Relative to OpenSSL 1-thread |
+|---|---:|---:|
+| Our SW emu (1 thread) | 19,039 | 0.06× (17.6× slower) |
+| OpenSSL ASM (1 thread) | 334,953 | 1× |
+| OpenSSL ASM (24 threads, 13900KS) | 4,277,211 | 12.8× |
+| FPGA latency-bound (batch=1) | 50,400 | 0.15× |
+| FPGA realistic batched (DSP-rolled) | 3,000,000–7,000,000 | 9–21× |
+| FPGA theoretical batched (full unroll, fits a bigger device) | 13,400,000 | 40× |
+
+**Honest takeaways**
+
+- For **single-op latency** (one TLS handshake at a time), the
+  FPGA does *not* win against a modern CPU. CPU's hand-tuned
+  modexp completes in ~3 µs; the FPGA's 19.83 µs latency loses by
+  ~7×. PCIe round-trip alone is ~1 µs each way.
+- For **batched-verify throughput**, the FPGA edges out a
+  fully-saturated 24-core 13900KS by maybe 1–2× under realistic
+  area-rolled assumptions. With a larger device (U280 / VP1352)
+  and full unroll, the FPGA pulls ahead more decisively.
+- For **batched sign throughput**, the FPGA gap is much wider.
+  CPU sign is ~10× slower than verify (full-bit-width private
+  exponent); FPGA throughput per modexp is independent of which
+  exponent, so the FPGA's relative advantage is ~10× higher for
+  sign. Estimated: 3–7 M signs/s on FPGA vs. 253 K signs/s on
+  24-core CPU → **12–28×** sign-throughput speedup.
+- Real commercial RSA accelerators (Intel QAT C62x ≈ 10 K
+  RSA-2048 signs/s per chip; Marvell LiquidSec similar) are
+  much slower than these projections. The literature gap mostly
+  reflects (a) chips with smaller die area dedicated to RSA, (b)
+  PCIe queueing models that don't sustain II=1, (c) lower clocks
+  on older process nodes. A from-scratch FPGA design with no
+  legacy constraints can plausibly beat them — but should be
+  benchmarked on real silicon (which v0.1 cannot do; see § 8).
+- The numbers above are derived from a single HLS C-synthesis
+  run of the inner-kernel primitive (`MontMul_1024`). They are
+  honest *upper bounds*, not measured FPGA results, because
+  there is no `.xclbin` to run on.
 
 ### 7.5 Performance bottlenecks identified
 
