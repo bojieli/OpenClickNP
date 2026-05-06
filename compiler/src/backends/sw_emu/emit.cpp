@@ -33,7 +33,8 @@ void emitTopologyHeader(std::ostream& os, const be::Build& b) {
        << "#include <string>\n"
        << "#include <fstream>\n"
        << "#include <iostream>\n"
-       << "#include \"openclicknp/sw_runtime.hpp\"\n\n";
+       << "#include \"openclicknp/sw_runtime.hpp\"\n"
+       << "#include \"openclicknp/bigint.hpp\"\n\n";
 }
 
 void emitKernelFunc(std::ostream& os, const be::KernelHls& k) {
@@ -167,56 +168,112 @@ void emitKernelFunc(std::ostream& os, const be::KernelHls& k) {
 }
 
 void emitMain(std::ostream& os, const be::Build& b) {
-    os << "// ---- main ----\n"
-       << "int openclicknp_sw_emu_main(int argc, char** argv) {\n";
-    // Stream variables.
-    int idx = 0;
+    // Build port -> stream-variable lookup tables so each kernel's
+    // in/out ports get wired to the SwStream that connects them.
+    // Map key: (kernel_name, "in"|"out", port_index) -> stream var name.
+    std::map<std::tuple<std::string,std::string,int>, std::string> port2stream;
+
+    // 1) Internal kernel-to-kernel streams.
+    int s_idx = 0;
+    std::vector<std::pair<std::string,int>> stream_decls;  // (var, depth)
     for (const auto& sc : b.stream_conns) {
-        os << "    openclicknp::SwStream stream_" << idx++
-           << "(" << sc.depth << ");  // "
-           << sc.src_kernel << "[" << sc.src_port << "] -> "
-           << sc.dst_kernel << "[" << sc.dst_port
-           << "] " << (sc.lossy ? "(lossy)" : "(lossless)") << "\n";
+        std::string var = "stream_" + std::to_string(s_idx++);
+        stream_decls.push_back({var, sc.depth});
+        port2stream[{sc.src_kernel, "out", sc.src_port}] = var;
+        port2stream[{sc.dst_kernel, "in",  sc.dst_port}] = var;
     }
-    // Boundary streams (tor/nic/host)
-    int b_idx = 0;
+    // 2) Tor edges (one of src/dst kernel is the literal "tor_in" or
+    //    "tor_out" pseudo-element; the other side is a real kernel).
+    int t_idx = 0;
     for (const auto& sc : b.tor_conns) {
-        os << "    openclicknp::SwStream tor_stream_" << b_idx++
-           << "(" << sc.depth << ");  // tor edge\n";
+        std::string var = "tor_stream_" + std::to_string(t_idx++);
+        stream_decls.push_back({var, sc.depth});
+        if (sc.src_kernel != "tor_in" && sc.src_kernel != "tor_out")
+            port2stream[{sc.src_kernel, "out", sc.src_port}] = var;
+        if (sc.dst_kernel != "tor_in" && sc.dst_kernel != "tor_out")
+            port2stream[{sc.dst_kernel, "in",  sc.dst_port}] = var;
     }
+    // 3) Nic edges.
     int n_idx = 0;
     for (const auto& sc : b.nic_conns) {
-        os << "    openclicknp::SwStream nic_stream_" << n_idx++
-           << "(" << sc.depth << ");  // nic edge\n";
+        std::string var = "nic_stream_" + std::to_string(n_idx++);
+        stream_decls.push_back({var, sc.depth});
+        if (sc.src_kernel != "nic_in" && sc.src_kernel != "nic_out")
+            port2stream[{sc.src_kernel, "out", sc.src_port}] = var;
+        if (sc.dst_kernel != "nic_in" && sc.dst_kernel != "nic_out")
+            port2stream[{sc.dst_kernel, "in",  sc.dst_port}] = var;
     }
-    os << "\n    std::atomic<bool> _stop{false};\n";
+    // 4) Host streams (host_in / host_out). HostConn carries direction.
+    int h_idx = 0;
+    for (const auto& hc : b.host_streams) {
+        std::string var = "host_stream_" + std::to_string(h_idx++);
+        stream_decls.push_back({var, 64});
+        // kernel_to_host=true: kernel produces, host consumes -> kernel out port
+        // kernel_to_host=false: host produces, kernel consumes -> kernel in port
+        port2stream[{hc.kernel, hc.kernel_to_host ? "out" : "in", hc.port}] = var;
+    }
+
+    os << "// ---- main ----\n";
+
+    // Boundary stream accessors so a per-test harness can reach in
+    // and inject/observe flits without re-running the whole emitter.
+    os << "// Boundary stream accessors (defined out-of-line below) — a\n";
+    os << "// test harness can reach in via openclicknp_sw_emu_<name>_stream().\n";
+    os << "namespace openclicknp_sw_emu {\n";
+    for (const auto& [var, depth] : stream_decls) {
+        os << "    extern openclicknp::SwStream& " << var << "();\n";
+    }
+    os << "    extern std::atomic<bool>& stop_flag();\n";
+    os << "}\n\n";
+
+    // Singleton storage for the streams (function-local statics so any
+    // translation unit that includes the generated code links cleanly).
+    os << "namespace openclicknp_sw_emu {\n";
+    for (const auto& [var, depth] : stream_decls) {
+        os << "    openclicknp::SwStream& " << var << "() {\n"
+           << "        static openclicknp::SwStream s(" << depth << ");\n"
+           << "        return s;\n"
+           << "    }\n";
+    }
+    os << "    std::atomic<bool>& stop_flag() {\n"
+       << "        static std::atomic<bool> s{false};\n"
+       << "        return s;\n"
+       << "    }\n";
+    os << "}\n\n";
+
+    os << "int openclicknp_sw_emu_main(int argc, char** argv) {\n";
+    os << "    (void)argc; (void)argv;\n";
+    os << "    auto& _stop = openclicknp_sw_emu::stop_flag();\n";
     os << "    std::vector<std::thread> threads;\n\n";
 
-    // Launch each kernel thread.
+    auto stream_for = [&](const std::string& kernel, const std::string& dir,
+                          int port_idx) -> std::string {
+        auto it = port2stream.find({kernel, dir, port_idx});
+        if (it == port2stream.end())
+            return "openclicknp::SwStream::null()";
+        return "openclicknp_sw_emu::" + it->second + "()";
+    };
+
+    // Launch each kernel thread with the right streams.
     for (const auto& k : b.kernels) {
         os << "    {\n";
-        // Build per-kernel argument list using the global stream table.
-        // For simplicity, ports are looked up by matching connection.
-        int kid = 0;
-        // (in this simple emitter, we pass placeholders; users typically
-        // examine the generated graph and adjust if needed.)
         os << "        threads.emplace_back([&](){ kernel_" << k.name << "(";
         bool first = true;
         auto comma = [&]() { if (!first) os << ", "; first = false; };
-        for (const auto& p : k.in_ports)  { comma(); os << "openclicknp::SwStream::null()"; (void)p; }
-        for (const auto& p : k.out_ports) { comma(); os << "openclicknp::SwStream::null()"; (void)p; }
+        for (const auto& p : k.in_ports)  { comma(); os << stream_for(k.name, "in",  p.index); }
+        for (const auto& p : k.out_ports) { comma(); os << stream_for(k.name, "out", p.index); }
         comma(); os << "_stop";
         if (k.has_signal) { comma(); os << "openclicknp::SignalChannel::dummy()"; }
         os << "); });\n    }\n";
-        (void)kid;
     }
 
-    os << "    // The default-generated harness uses SwStream::null() placeholders;\n"
-       << "    // a per-example main may rewrite this to wire real streams from PCAP\n"
-       << "    // sources/sinks. See examples/<name>/host.cpp for the convention.\n";
+    // Default behavior (when run as a standalone binary with no test
+    // harness driving boundaries): exit immediately. A test harness
+    // replaces this by importing the kernel functions, wiring its own
+    // input streams via the openclicknp_sw_emu::host_stream_*() accessors,
+    // and orchestrating the run itself.
     os << "    _stop.store(true);\n";
     os << "    for (auto& t : threads) t.join();\n";
-    os << "    (void)argc; (void)argv;\n";
     os << "    return 0;\n}\n";
 }
 

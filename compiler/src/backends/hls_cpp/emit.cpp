@@ -47,7 +47,8 @@ void emitIncludes(std::ostream& os) {
     os << "#include <ap_int.h>\n"
        << "#include <ap_axi_sdata.h>\n"
        << "#include <hls_stream.h>\n"
-       << "#include \"openclicknp/hls_runtime.hpp\"\n\n";
+       << "#include \"openclicknp/hls_runtime.hpp\"\n"
+       << "#include \"openclicknp/bigint.hpp\"\n\n";
 }
 
 std::string portList(const be::KernelHls& k) {
