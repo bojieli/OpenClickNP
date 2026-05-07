@@ -255,17 +255,30 @@ inline void const_time_select(U<N>& dst, const U<N>& src, uint64_t cond) {
         dst.limbs[i] = (dst.limbs[i] & ~mask) | (src.limbs[i] & mask);
 }
 
-// Constant-time modexp via Montgomery ladder.
+// Constant-time conditional swap: if cond==1 swap a and b, else leave.
+// Standard XOR-mask trick — no data-dependent branch.
+template <int N>
+inline void const_time_swap(U<N>& a, U<N>& b, uint64_t cond) {
+    uint64_t mask = ~(cond - 1);
+    for (int i = 0; i < N; ++i) {
+        uint64_t diff = (a.limbs[i] ^ b.limbs[i]) & mask;
+        a.limbs[i] ^= diff;
+        b.limbs[i] ^= diff;
+    }
+}
+
+// Constant-time modexp via the Montgomery powering ladder, in the
+// Joye-Yen (CHES 2002) form with a single constant-time swap per bit.
 //
-// Standard binary square-and-multiply branches on each bit of e and so
-// leaks the secret exponent through timing / cache / power side
-// channels — fine for verify (public e) but unsafe for sign/decrypt
-// (private d). The Montgomery ladder always performs both operations
-// per bit and uses a constant-time conditional copy to select the new
-// state, eliminating the branch.
+// Per-iteration cost is exactly TWO Montgomery multiplications (one
+// product + one square), regardless of the bit value. The earlier
+// implementation here computed all four candidate states and masked
+// the selection — correct, but used 4 mont_muls/bit. The Joye-Yen
+// form has been the standard since the 2002 paper.
 //
-// Reference: Joye-Yen 2002, "The Montgomery Powering Ladder",
-// CHES 2002. Implementation written from the algorithm description.
+// Reference (algorithm only — implementation written from spec):
+//   Joye, M. and Yen, S.M., "The Montgomery Powering Ladder",
+//   Cryptographic Hardware and Embedded Systems (CHES) 2002.
 template <int N>
 inline void modexp_consttime(U<N>& out,
                              const U<N>& m,
@@ -277,38 +290,31 @@ inline void modexp_consttime(U<N>& out,
     // Operand into Montgomery form.
     U<N> m_mont; mont_mul(m_mont, m, R2, n, n_inv);
 
-    // Ladder state: R0 = 1·R, R1 = m·R (both already in Montgomery form).
-    U<N> R0_mont; compute_R_mod_n(R0_mont, n);
-    U<N> R1_mont = m_mont;
+    // Ladder state: R0 = 1·R, R1 = m·R (Montgomery form).
+    U<N> R0; compute_R_mod_n(R0, n);
+    U<N> R1 = m_mont;
 
-    // Walk every exponent bit from MSB to LSB. Skip leading zero limbs
-    // (still constant-time *given* the modulus size; only the high zero
-    // limbs are skipped, not data-dependent within the operand).
+    // Joye-Yen with cswap:
+    //   for each bit (MSB → LSB):
+    //     cswap(R0, R1, bit)
+    //     R1 = R0 * R1                  (mont_mul #1)
+    //     R0 = R0^2                     (mont_mul #2)
+    //     cswap(R0, R1, bit)
+    // After the loop, R0 holds the result (R · m^e mod n).
     for (int i = N * LIMB_BITS - 1; i >= 0; --i) {
         uint64_t bit = (e.limbs[i / LIMB_BITS] >> (i % LIMB_BITS)) & 1u;
 
-        // Compute both possible next states up front.
-        U<N> R0_next, R1_next;          // for bit=0: R0' = R0·R0, R1' = R0·R1
-        U<N> R0_alt , R1_alt ;          // for bit=1: R0' = R0·R1, R1' = R1·R1
-        mont_mul(R0_next, R0_mont, R0_mont, n, n_inv);     // R0² (used if bit=0)
-        mont_mul(R0_alt , R0_mont, R1_mont, n, n_inv);     // R0·R1 (used as R1' if bit=0
-                                                            //         or as R0' if bit=1)
-        mont_mul(R1_next, R0_mont, R1_mont, n, n_inv);     // = R0_alt; reuse below
-        mont_mul(R1_alt , R1_mont, R1_mont, n, n_inv);     // R1² (used if bit=1)
-
-        // Branchless: pick R0' = bit ? R0_alt : R0_next,
-        //             R1' = bit ? R1_alt : R1_next.
-        // (R1_next is R0·R1 which equals R0_alt; we recomputed it above
-        // for symmetry / to avoid clever-but-fragile aliasing.)
-        const_time_select(R0_mont, R0_alt , bit);
-        const_time_select(R0_mont, R0_next, 1u - bit);
-        const_time_select(R1_mont, R1_alt , bit);
-        const_time_select(R1_mont, R1_next, 1u - bit);
+        const_time_swap(R0, R1, bit);
+        U<N> prod;  mont_mul(prod, R0, R1, n, n_inv);
+        U<N> sq;    mont_mul(sq,   R0, R0, n, n_inv);
+        R1 = prod;
+        R0 = sq;
+        const_time_swap(R0, R1, bit);
     }
 
     // Convert R0 back out of Montgomery form.
     U<N> one; one.set_zero(); one.limbs[0] = 1;
-    mont_mul(out, R0_mont, one, n, n_inv);
+    mont_mul(out, R0, one, n, n_inv);
 }
 
 // Modular exponentiation: out = m^e mod n.

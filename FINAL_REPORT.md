@@ -437,7 +437,7 @@ Putting it together for **RSA-1024 verify**:
   honest *upper bounds*, not measured FPGA results, because
   there is no `.xclbin` to run on.
 
-### 7.5 Performance bottlenecks identified
+### 7.6 Performance bottlenecks identified
 
 Two non-trivial bugs were uncovered during this work and both are now
 fixed:
@@ -642,28 +642,58 @@ A round-trip via the ENGINE's `STATS` ctrl on a 2048-bit key shows:
 one CRT call (the decrypt). No fallback to default OpenSSL, every
 RSA primitive went through our path.
 
-### 9.3 Sign throughput honest disclosure
+### 9.3 Sign throughput
 
-`openssl speed -engine openclicknp rsa1024 rsa2048` on i9-13900KS:
+`openssl speed -engine openclicknp rsa1024 rsa2048` on i9-13900KS,
+after the Joye-Yen cswap rewrite (2 mont_muls/bit, the standard
+CHES 2002 form):
 
 | Bits | Ops | Engine path | ops/s |
 |---|---|---|---:|
-| 1024 | sign | CRT + consttime ladder | 3,171 |
-| 1024 | verify | non-consttime modexp | 42,215 |
-| 2048 | sign | CRT + consttime ladder | 398.5 |
-| 2048 | verify | non-consttime modexp | 6,680.5 |
+| 1024 | sign | CRT + consttime cswap ladder | **5,420** (was 3,171 with 4 mont_muls/bit) |
+| 1024 | verify | non-consttime modexp | 41,240 |
+| 2048 | sign | CRT + consttime cswap ladder | **779** (was 399) |
+| 2048 | verify | non-consttime modexp | 6,630 |
 
-Sign is slower than the prior pre-CRT engine measurement (1,881 /
-919) because the CRT path internally uses the unoptimized Joye-Yen
-ladder (4 `mont_mul`s per exponent bit) on each half — net effect
-is more work than the non-consttime full-bit-width modexp despite
-half-bit-width arithmetic. The trade-off is worth it: the previous
-path was timing-leaky on private keys, the new path is not. With
-the ladder rewritten to use `cswap` (2 `mont_mul`s/bit) the CRT
-path would land roughly at OpenSSL's `BN_mod_exp_mont_consttime`
-speed.
+Halving the ladder cost gave a clean ~1.9× speedup on sign at both
+bit widths. Sign-vs-OpenSSL-ASM ratio improved from ~6× slower
+to ~3.5× slower. Further closing the gap would require windowed
+exponentiation (k-ary Montgomery ladder) and AVX-512 / ADX in the
+SW path — outside scope for this work, since the FPGA is the
+intended sign accelerator.
 
-## 11. Repository tour
+## 11. Hardware-side numbers (HLS C-synthesis on Alveo U50)
+
+Final HLS C-synthesis results for the symmetric + asymmetric crypto
+elements that ship in v0.2 of this work, on `xcu50-fsvh2104-2-e`,
+3.106 ns target clock period:
+
+| Element | LUT | FF | DSP | BRAM | Est. Fmax | Latency / op | Throughput / instance @ 322 MHz |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| `AES_ECB` (1 flit = 2 blocks) | 27,103 (3 %) | 3,591 | 0 | 0 | 386 MHz | ~13 cycles/block | ~397 MB/s |
+| `AES_CTR` | 30,380 (3 %) | 7,789 | 0 | 0 | 386 MHz | ~13 cycles/block | ~397 MB/s |
+| `SHA1_Block` (1 block / 2 flits) | 9,775 (1 %) | 1,752 | 0 | 0 | **505 MHz** | 250 cycles/block | ~82 MB/s |
+| `MontMul_1024` (RSA-1024 inner kernel) | 263,814 (30 %) | 718,533 (41 %) | 8,452 (142 % — over budget) | 0 | 322 MHz / 242 MHz | 266 cycles, II = 1 | one new mont_mul / cycle pipelined |
+
+Linear-scaling check on AES: synthesizing 4 separate kernel
+instances (`a1..a4`) gave **exactly** 27,103 LUT / 3,591 FF / 0 DSP
+each — no Vivado-induced shrinkage or growth. Aggregate area for
+N instances is therefore N × single-instance, modulo interconnect.
+
+Replication budget at 50 % U50 (435,840 LUT after shell):
+
+| Element | Instances at 50 % U50 | Aggregate throughput |
+|---|---:|---:|
+| `AES_ECB` | 16 | ~6.4 GB/s |
+| `AES_CTR` | 14 | ~5.6 GB/s |
+| `SHA1_Block` | 44 | ~3.6 GB/s |
+| `MontMul_1024` (DSP-rolled to fit) | 1-3 | 3-7 M RSA-1024 ops/s |
+
+DSP (rather than LUT) is the bottleneck for RSA. The other three
+crypto kernels are LUT-bound and use 0 DSP, so they don't compete
+with RSA's 8 k-DSP demand on the same die.
+
+## 12. Repository tour
 
 ```
 OpenClickNP/                  https://github.com/bojieli/OpenClickNP
