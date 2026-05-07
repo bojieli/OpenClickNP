@@ -14,6 +14,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <type_traits>
 
 extern "C" int openclicknp_modexp(uint64_t* out,
                                   const uint64_t* m,
@@ -46,4 +47,62 @@ extern "C" int openclicknp_modexp(uint64_t* out,
     if (n_limbs == 32) return run(std::integral_constant<int, 32>{});
     if (n_limbs == 64) return run(std::integral_constant<int, 64>{});
     return 1;  // unsupported width — caller falls back to libcrypto
+}
+
+// Constant-time modexp: same shape as openclicknp_modexp, used by the
+// ENGINE for any caller that requires side-channel resistance.
+extern "C" int openclicknp_modexp_consttime(uint64_t* out,
+                                            const uint64_t* m,
+                                            const uint64_t* e,
+                                            const uint64_t* n,
+                                            int n_limbs) {
+    using namespace openclicknp::bigint;
+    auto run = [&](auto tag) -> int {
+        constexpr int N = decltype(tag)::value;
+        U<N> mu, eu, nu, ou;
+        for (int i = 0; i < N; ++i) { mu.limbs[i] = m[i]; eu.limbs[i] = e[i]; nu.limbs[i] = n[i]; }
+        if ((nu.limbs[0] & 1u) == 0u) return 1;
+        modexp_consttime(ou, mu, eu, nu);
+        for (int i = 0; i < N; ++i) out[i] = ou.limbs[i];
+        return 0;
+    };
+    if (n_limbs == 16) return run(std::integral_constant<int, 16>{});
+    if (n_limbs == 32) return run(std::integral_constant<int, 32>{});
+    if (n_limbs == 64) return run(std::integral_constant<int, 64>{});
+    return 1;
+}
+
+// CRT-accelerated RSA private-key operation.
+// All limb arrays are little-endian. n_limbs is the RSA modulus size in
+// 64-bit limbs (16/32/64 = RSA-1024/2048/4096); p, q, dp, dq, qInv are
+// each n_limbs/2 limbs (the half-bit-width primes and CRT params).
+extern "C" int openclicknp_rsa_crt(uint64_t* out,
+                                   const uint64_t* c,
+                                   const uint64_t* p,
+                                   const uint64_t* q,
+                                   const uint64_t* dp,
+                                   const uint64_t* dq,
+                                   const uint64_t* qInv,
+                                   int n_limbs) {
+    using namespace openclicknp::bigint;
+    auto run = [&](auto tag) -> int {
+        constexpr int N = decltype(tag)::value;
+        constexpr int M = N / 2;
+        U<N> cu, ou;
+        U<M> pu, qu, dpu, dqu, qiu;
+        for (int i = 0; i < N; ++i) cu.limbs[i] = c[i];
+        for (int i = 0; i < M; ++i) {
+            pu.limbs[i] = p[i]; qu.limbs[i] = q[i];
+            dpu.limbs[i] = dp[i]; dqu.limbs[i] = dq[i];
+            qiu.limbs[i] = qInv[i];
+        }
+        if ((pu.limbs[0] & 1u) == 0u || (qu.limbs[0] & 1u) == 0u) return 1;
+        rsa_crt_decrypt<N, M>(ou, cu, pu, qu, dpu, dqu, qiu);
+        for (int i = 0; i < N; ++i) out[i] = ou.limbs[i];
+        return 0;
+    };
+    if (n_limbs == 16) return run(std::integral_constant<int, 16>{});
+    if (n_limbs == 32) return run(std::integral_constant<int, 32>{});
+    if (n_limbs == 64) return run(std::integral_constant<int, 64>{});
+    return 1;
 }

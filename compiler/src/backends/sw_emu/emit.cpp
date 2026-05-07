@@ -34,7 +34,9 @@ void emitTopologyHeader(std::ostream& os, const be::Build& b) {
        << "#include <fstream>\n"
        << "#include <iostream>\n"
        << "#include \"openclicknp/sw_runtime.hpp\"\n"
-       << "#include \"openclicknp/bigint.hpp\"\n\n";
+       << "#include \"openclicknp/bigint.hpp\"\n"
+       << "#include \"openclicknp/aes128.hpp\"\n"
+       << "#include \"openclicknp/sha1.hpp\"\n\n";
 }
 
 void emitKernelFunc(std::ostream& os, const be::KernelHls& k) {

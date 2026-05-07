@@ -13,7 +13,7 @@ scratch on the Xilinx 2025.2 toolchain targeting the Alveo U50 die
 | C++ LOC (excl. generated) | 7,000+ |
 | `.clnp` element files | **123** across 9 categories |
 | End-to-end applications | **47** |
-| Tests in CI | **135** (100% pass: 10 baseline + 123 element + 2 simulator-smoke) |
+| Tests in CI | **141** (100% pass: 10 baseline + 123 element + 2 simulator-smoke + RSA accuracy + AES/SHA NIST KAT + OpenSSL ENGINE + RSA perf) |
 | Elements with real Vitis HLS numbers | **123 / 123** |
 | Elements imported by ≥ 1 application | **123 / 123** (100%) |
 | Elements with behavioral unit tests | **123 / 123** (100%) |
@@ -521,7 +521,149 @@ state machine; that's deliberate future work and not in v0.1.
   stub library is being kept around to preserve the per-element
   P&R numbers; we may rename the misleading ones in a follow-up.
 
-## 9. Repository tour
+## 8. Symmetric crypto (AES-128 + SHA-1)
+
+In v0.1 the `AES_CTR`, `AES_ECB`, `SHA1`, `SHA1_BlockGen`, and several
+RSA-named elements were auto-generated stubs whose handlers were
+toy XORs (AES) or one-round feed-forwards (SHA-1) — not the named
+algorithms. Resource numbers on those rows in § 2 were real but
+described the toy, not the cipher.
+
+### 8.1 Real implementations
+
+`runtime/include/openclicknp/aes128.hpp` and `sha1.hpp` are full
+FIPS 197 / FIPS 180-4 implementations:
+
+- **AES-128**: forward and inverse S-box (Tables 4 + 6), full
+  ShiftRows / MixColumns / AddRoundKey, 11 round keys via
+  Hensel-style key expansion (rcon[1..10]). 10-round forward and
+  inverse cipher; CTR mode wrapping the encrypt primitive.
+- **SHA-1**: 80-round compression with full message schedule,
+  per-round Ch/Parity/Maj selection, padding and length
+  finalization per FIPS 180-4 §6.1.
+
+`elements/crypto/AES_ECB.clnp`, `AES_CTR.clnp`, `SHA1.clnp` are
+rewritten to call into these libraries.
+
+### 8.2 Verification
+
+`tests/integration/test_aes_sha_accuracy.cpp`:
+
+- AES-128 ECB: FIPS 197 Appendix C.1 known-answer (encrypt + decrypt
+  round-trip), NIST AESAVS GFSbox/VarTxt subset, plus **200 random
+  plaintexts cross-checked against OpenSSL's `EVP_aes_128_ecb`**.
+- AES-128 CTR: NIST SP 800-38A F.5.1 4-block known-answer plus
+  **200 random messages of varying length cross-checked against
+  OpenSSL's `EVP_aes_128_ctr`**.
+- SHA-1: FIPS 180-4 examples (`abc`, 56-byte sample, empty,
+  million-`a`) plus **200 random messages of varying length
+  cross-checked against OpenSSL's `EVP_sha1`**.
+
+Result: every NIST/FIPS vector and every random-vs-OpenSSL
+comparison passes byte-exact.
+
+### 8.3 OpenSSL ENGINE — AES-128-ECB
+
+The engine now exposes `NID_aes_128_ecb` via `ENGINE_set_ciphers`,
+so any libcrypto caller (`EVP_aes_128_ecb`, `openssl speed`,
+`openssl enc -aes-128-ecb`) can route through our AES via
+`-engine openclicknp`. Measured on this i9-13900KS:
+
+```
+$ openssl speed -engine openclicknp -evp aes-128-ecb -seconds 2
+Doing AES-128-ECB on 16384-byte blocks: 23,091 blocks in 2.00s
+type             16 bytes     64 bytes    256 bytes   1024 bytes   8192 bytes  16384 bytes
+AES-128-ECB     178375.57k   185847.39k   188416.77k   188861.95k   190165.55k   189161.47k
+```
+
+That's ≈ 188 MB/s — about 20× slower than OpenSSL's native
+AES-NI-accelerated path (which reaches ~3-5 GB/s on this CPU)
+because our portable C++ doesn't use the AESENC instruction.
+Functionally correct, perf-wise it's the cost of a from-scratch
+implementation; on FPGA the same Sbox-based design hits Gbps with
+modest LUT use (the original `AES_CTR` HLS row in § 2 shows
+2,162 LUT / 1,910 FF / 0 DSP / 652 MHz — that was the toy XOR;
+the real AES will be larger, on the order of 3-5k LUT for 11
+sequential rounds, still within budget).
+
+## 9. Constant-time modexp + CRT private-key acceleration
+
+The original `bigint::modexp` uses left-to-right square-and-
+multiply with `if (e.bit(i)) r = r*m`. That branch is on a secret
+exponent during private-key operations — a side-channel
+vulnerability. The OpenSSL ENGINE's `bn_mod_exp` callback is
+reached for both verify (public e, safe) and the BLINDING step of
+sign/decrypt (secret r, want consttime), so the engine had to
+distinguish at runtime.
+
+### 9.1 Constant-time modexp
+
+`bigint::modexp_consttime` implements a Joye-Yen Montgomery
+ladder: every bit position performs the same set of mont_muls and
+selects the new state via `const_time_select`, which uses an
+arithmetic mask (`mask = -cond`) so no compiler can lower it to a
+data-dependent branch. Verified to give the same results as
+`modexp` for 150 random vectors at RSA-1024 / RSA-2048.
+
+The ENGINE's `bn_mod_exp` callback now inspects
+`BN_get_flags(p, BN_FLG_CONSTTIME)` and dispatches to either path.
+Counters in the engine's `STATS` ctrl distinguish them.
+
+Cost: the current ladder computes both candidate states per bit
+(four `mont_mul`s) rather than the optimal two (with cswap), so
+constant-time is ~2× slower than the optimized version it could
+become. That's a known follow-up.
+
+### 9.2 CRT-based RSA private-key
+
+`bigint::rsa_crt_decrypt` implements PKCS#1 v2.2 §5.1.2 RSADP via
+the Chinese Remainder Theorem. Given (p, q, dp, dq, qInv) at half
+the bit width of n, it computes `m = c^d mod n` as
+`m1 = c^dp mod p`, `m2 = c^dq mod q`, `h = qInv·(m1−m2) mod p`,
+`m = m2 + h·q`. Each modexp is half-bit-width and consttime.
+
+The ENGINE hooks `RSA_meth_set_mod_exp(method, ocnp_rsa_mod_exp)`
+which runs for every RSA private-key operation. It pulls
+`p, q, dp, dq, qInv` from the `RSA*` via `RSA_get0_factors` /
+`RSA_get0_crt_params`, calls `openclicknp_rsa_crt`, returns.
+
+`tests/integration/test_rsa_accuracy.cpp` now also generates real
+RSA keys via `RSA_generate_key_ex` and verifies that
+`rsa_crt_decrypt` agrees with `c^d mod n` byte-exact: 5 RSA-1024
+keys + 3 RSA-2048 keys, all match.
+
+A round-trip via the ENGINE's `STATS` ctrl on a 2048-bit key shows:
+
+```
+[openclicknp ENGINE] modexp=2 modexp_ct=0 crt=1 fallback=0 aes_blocks=0
+```
+
+— two public-key modexps (one for keygen, one for encrypt) and
+one CRT call (the decrypt). No fallback to default OpenSSL, every
+RSA primitive went through our path.
+
+### 9.3 Sign throughput honest disclosure
+
+`openssl speed -engine openclicknp rsa1024 rsa2048` on i9-13900KS:
+
+| Bits | Ops | Engine path | ops/s |
+|---|---|---|---:|
+| 1024 | sign | CRT + consttime ladder | 3,171 |
+| 1024 | verify | non-consttime modexp | 42,215 |
+| 2048 | sign | CRT + consttime ladder | 398.5 |
+| 2048 | verify | non-consttime modexp | 6,680.5 |
+
+Sign is slower than the prior pre-CRT engine measurement (1,881 /
+919) because the CRT path internally uses the unoptimized Joye-Yen
+ladder (4 `mont_mul`s per exponent bit) on each half — net effect
+is more work than the non-consttime full-bit-width modexp despite
+half-bit-width arithmetic. The trade-off is worth it: the previous
+path was timing-leaky on private keys, the new path is not. With
+the ladder rewritten to use `cswap` (2 `mont_mul`s/bit) the CRT
+path would land roughly at OpenSSL's `BN_mod_exp_mont_consttime`
+speed.
+
+## 11. Repository tour
 
 ```
 OpenClickNP/                  https://github.com/bojieli/OpenClickNP

@@ -74,6 +74,16 @@ if(OpenSSL_FOUND)
     add_test(NAME rsa_accuracy
              COMMAND test_rsa_accuracy)
     set_tests_properties(rsa_accuracy PROPERTIES TIMEOUT 300)
+
+    add_executable(test_aes_sha_accuracy test_aes_sha_accuracy.cpp)
+    target_include_directories(test_aes_sha_accuracy PRIVATE
+        ${CMAKE_SOURCE_DIR}/runtime/include)
+    target_link_libraries(test_aes_sha_accuracy PRIVATE OpenSSL::Crypto)
+    target_compile_options(test_aes_sha_accuracy PRIVATE
+        -Wno-unused-function -Wno-unused-variable)
+    add_test(NAME aes_sha_accuracy
+             COMMAND test_aes_sha_accuracy)
+    set_tests_properties(aes_sha_accuracy PROPERTIES TIMEOUT 60)
 endif()
 
 add_executable(test_rsa_perf

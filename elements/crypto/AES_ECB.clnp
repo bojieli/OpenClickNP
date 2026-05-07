@@ -1,15 +1,50 @@
 // SPDX-License-Identifier: Apache-2.0
-// Auto-generated bulk element stub for OpenClickNP.
+//
+// AES-128-ECB: real FIPS 197 block encryption.
+//
+// Input flit holds two 16-byte AES blocks (the 32-byte payload).
+// Each block is encrypted independently with the current 128-bit key.
+// Output flit has the same shape with ciphertext substituted for plaintext.
+//
+// Key is set via signal RPC: cmd=1 with lparam[0..1] = key as two
+// little-endian uint64s (lparam[0] = key bytes 0..7,
+// lparam[1] = bytes 8..15). .init programs an all-zeros key by default;
+// the host must call signal(1, key) before driving plaintext.
+//
+// Implementation: openclicknp::aes::aes128_encrypt_block from
+// runtime/include/openclicknp/aes128.hpp. Verified against FIPS 197
+// Appendix C.1 + NIST AESAVS vectors in
+// tests/integration/test_aes_sha_accuracy.cpp.
 .element AES_ECB <1, 1> {
-    .state {uint64_t k0, k1;}
-    .init {_state.k0 = 0xC0FFEEC0FFEEull; _state.k1 = 0xBADBADBADull;}
+    .state {
+        uint8_t key_bytes[16];
+        openclicknp::aes::Key128 round_keys;
+    }
+    .init {
+        for (uint32_t i = 0; i < 16; ++i) _state.key_bytes[i] = 0;
+        openclicknp::aes::aes128_key_expand(_state.round_keys, _state.key_bytes);
+    }
     .handler {
         if (test_input_port(PORT_1)) {
             openclicknp::flit_t f = read_input_port(PORT_1);
-            f.set(0, f.get(0) ^ _state.k0);
-            f.set(1, f.get(1) ^ _state.k1);
-            set_output_port(1, f);
+            uint8_t pt[32], ct[32];
+            f.get_data(pt, 32);
+            openclicknp::aes::aes128_encrypt_block(ct,        pt,        _state.round_keys);
+            openclicknp::aes::aes128_encrypt_block(ct + 16,   pt + 16,   _state.round_keys);
+            openclicknp::flit_t o{};
+            o.set_data(ct, 32);
+            o.set_sop(f.sop()); o.set_eop(f.eop());
+            set_output_port(1, o);
         }
         return PORT_1;
-}
+    }
+    .signal (uint cmd, uint p) {
+        if (event.cmd == 1) {
+            for (int i = 0; i < 8; ++i)
+                _state.key_bytes[i]      = static_cast<uint8_t>(event.lparam[0] >> (i * 8));
+            for (int i = 0; i < 8; ++i)
+                _state.key_bytes[8 + i]  = static_cast<uint8_t>(event.lparam[1] >> (i * 8));
+            openclicknp::aes::aes128_key_expand(_state.round_keys, _state.key_bytes);
+        }
+    }
 }

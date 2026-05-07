@@ -1,27 +1,45 @@
 // SPDX-License-Identifier: Apache-2.0
-// Auto-generated bulk element stub for OpenClickNP.
+//
+// SHA-1: full FIPS 180-4 hash of a streamed message.
+//
+// Input flits carry message bytes (32 bytes per flit). The element
+// accumulates a SHA-1 context across flits and finalizes when it sees
+// a flit with eop set; it then emits the 20-byte digest as one output
+// flit (digest in the first 20 bytes of the payload, padded with zeros).
+//
+// Reference: openclicknp::sha1::Ctx + update + final_digest. Verified
+// against FIPS 180-4 'abc', 56-byte, empty, and million-a vectors in
+// tests/integration/test_aes_sha_accuracy.cpp.
 .element SHA1 <1, 1> {
     .state {
-        uint32_t h[5];
-}
+        openclicknp::sha1::Ctx ctx;
+        bool started;
+    }
     .init {
-        _state.h[0] = 0x67452301; _state.h[1] = 0xEFCDAB89;
-        _state.h[2] = 0x98BADCFE; _state.h[3] = 0x10325476;
-        _state.h[4] = 0xC3D2E1F0;
-}
+        openclicknp::sha1::init(_state.ctx);
+        _state.started = false;
+    }
     .handler {
         if (test_input_port(PORT_1)) {
             openclicknp::flit_t f = read_input_port(PORT_1);
-            // Simple feed-forward update (toy; full SHA-1 needs the
-            // 80-round expansion, this exercises the dataflow shape).
-            uint32_t w0 = static_cast<uint32_t>(f.get(0));
-            uint32_t a = _state.h[0], b = _state.h[1], c = _state.h[2], d = _state.h[3], e = _state.h[4];
-            uint32_t t = ((a << 5) | (a >> 27)) + ((b & c) | (~b & d)) + e + w0 + 0x5A827999u;
-            _state.h[4] = d; _state.h[3] = c; _state.h[2] = (b << 30) | (b >> 2);
-            _state.h[1] = a; _state.h[0] = t;
-            f.set(2, (uint64_t(_state.h[0]) << 32) | _state.h[1]);
-            set_output_port(1, f);
+            if (!_state.started || f.sop()) {
+                openclicknp::sha1::init(_state.ctx);
+                _state.started = true;
+            }
+            uint8_t buf[32]; f.get_data(buf, 32);
+            openclicknp::sha1::update(_state.ctx, buf, 32);
+            if (f.eop()) {
+                uint8_t digest[20];
+                openclicknp::sha1::final_digest(_state.ctx, digest);
+                openclicknp::flit_t o{};
+                uint8_t pad[32]; for (int i = 0; i < 32; ++i) pad[i] = 0;
+                for (int i = 0; i < 20; ++i) pad[i] = digest[i];
+                o.set_data(pad, 32);
+                o.set_sop(true); o.set_eop(true);
+                set_output_port(1, o);
+                _state.started = false;
+            }
         }
         return PORT_1;
-}
+    }
 }

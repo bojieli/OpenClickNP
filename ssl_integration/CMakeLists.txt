@@ -14,7 +14,8 @@ enable_language(C)
 
 add_library(openclicknp_engine SHARED
     openclicknp_engine.c
-    openclicknp_modexp.cpp)
+    openclicknp_modexp.cpp
+    openclicknp_aes_shim.cpp)
 set_target_properties(openclicknp_engine PROPERTIES
     OUTPUT_NAME openclicknp
     PREFIX "")

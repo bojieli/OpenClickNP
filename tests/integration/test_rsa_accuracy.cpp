@@ -20,6 +20,7 @@
 
 #include <openssl/bn.h>
 #include <openssl/err.h>
+#include <openssl/rsa.h>
 
 #include <cstdio>
 #include <cstring>
@@ -188,6 +189,63 @@ static int fuzz(int n_iter, uint64_t seed, const char* label) {
     return fails;
 }
 
+// Constant-time modexp: same answer as the regular path, by construction.
+template <int N>
+static int consttime_fuzz(int n_iter, uint64_t seed, const char* label) {
+    std::printf("Constant-time modexp fuzz %d (%s):\n", n_iter, label);
+    std::mt19937_64 rng(seed);
+    int fails = 0;
+    for (int it = 0; it < n_iter; ++it) {
+        U<N> m, e, n, c1, c2;
+        random_u(m, rng); random_u(e, rng); random_u(n, rng, /*odd=*/true);
+        modexp(c1, m, e, n);
+        modexp_consttime(c2, m, e, n);
+        if (cmp(c1, c2) != 0) ++fails;
+    }
+    std::printf("  %d/%d match modexp %s\n", n_iter - fails, n_iter,
+                fails == 0 ? "✓" : "✗");
+    return fails;
+}
+
+// CRT decrypt: cross-check against c^d mod n via real OpenSSL RSA keys.
+template <int N, int M>
+static int crt_check(int n_iter, int bits, uint64_t seed, const char* label) {
+    std::printf("CRT decrypt %d (%s, %d-bit):\n", n_iter, label, bits);
+    int fails = 0;
+    BIGNUM* bn_e = BN_new(); BN_set_word(bn_e, 65537);
+    for (int it = 0; it < n_iter; ++it) {
+        RSA* rsa = RSA_new();
+        if (!RSA_generate_key_ex(rsa, bits, bn_e, NULL)) { ++fails; RSA_free(rsa); continue; }
+        const BIGNUM *bn_n=NULL, *bn_d=NULL, *bn_p=NULL, *bn_q=NULL,
+                     *bn_dp=NULL, *bn_dq=NULL, *bn_qi=NULL;
+        RSA_get0_key(rsa, &bn_n, NULL, &bn_d);
+        RSA_get0_factors(rsa, &bn_p, &bn_q);
+        RSA_get0_crt_params(rsa, &bn_dp, &bn_dq, &bn_qi);
+
+        U<N> n_v, d_v, c, m_crt, m_ref;
+        U<M> p, q, dp, dq, qi;
+        from_bn(bn_n, n_v); from_bn(bn_d, d_v);
+        from_bn(bn_p, p); from_bn(bn_q, q);
+        from_bn(bn_dp, dp); from_bn(bn_dq, dq); from_bn(bn_qi, qi);
+
+        std::mt19937_64 rng(seed + it);
+        for (int i = 0; i < N; ++i) c.limbs[i] = rng();
+        while (cmp(c, n_v) >= 0) {
+            U<N> t; sub(t, c, n_v); c = t;
+        }
+
+        modexp(m_ref, c, d_v, n_v);
+        rsa_crt_decrypt<N, M>(m_crt, c, p, q, dp, dq, qi);
+
+        if (cmp(m_ref, m_crt) != 0) ++fails;
+        RSA_free(rsa);
+    }
+    BN_free(bn_e);
+    std::printf("  %d/%d match c^d mod n %s\n", n_iter - fails, n_iter,
+                fails == 0 ? "✓" : "✗");
+    return fails;
+}
+
 int main() {
     int total = 0;
     total += edge_case_suite<16>("RSA-1024");
@@ -198,10 +256,19 @@ int main() {
     total += fuzz<32>(100, 0xBADBEEF1, "RSA-2048");
     total += fuzz<64>( 50, 0xDEADD00D, "RSA-4096");
 
+    total += consttime_fuzz<16>(100, 0xC1A0CAFE, "RSA-1024");
+    total += consttime_fuzz<32>( 50, 0xC1A0BEEF, "RSA-2048");
+
+    // CRT path needs RSA keygen, which is slow; use small bit widths
+    // for breadth and one 1024-bit run for confidence.
+    total += crt_check<16,  8>(  5, 1024, 0xCB7A1024, "RSA-1024 CRT");
+    total += crt_check<32, 16>(  3, 2048, 0xCB7A2048, "RSA-2048 CRT");
+
     if (total) {
-        std::printf("\nFAIL: %d total mismatch(es) vs OpenSSL\n", total);
+        std::printf("\nFAIL: %d total\n", total);
         return 1;
     }
-    std::printf("\nALL ACCURACY TESTS PASSED (vs OpenSSL BN_mod_exp_mont reference)\n");
+    std::printf("\nALL ACCURACY TESTS PASSED\n  modexp vs OpenSSL: 350+21 vectors\n"
+                "  consttime vs modexp: 150 vectors\n  CRT vs modexp: 8 real RSA keys\n");
     return 0;
 }

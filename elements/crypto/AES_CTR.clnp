@@ -1,22 +1,59 @@
 // SPDX-License-Identifier: Apache-2.0
-// Auto-generated bulk element stub for OpenClickNP.
+//
+// AES-128-CTR: real SP 800-38A counter-mode encryption (and decryption,
+// since CTR is symmetric).
+//
+// Each input flit's 32-byte payload is XORed with two AES(counter)
+// keystream blocks. The 16-byte counter is held in state and
+// incremented (low 64 bits, big-endian) by 1 per AES block (so by 2
+// per flit). Initial counter is set via signal RPC cmd=2; key via cmd=1.
+//
+// Reference: openclicknp::aes::aes128_ctr_xcrypt; verified against
+// NIST SP 800-38A F.5.1 in tests/integration/test_aes_sha_accuracy.cpp.
 .element AES_CTR <1, 1> {
     .state {
-        uint64_t counter;
-        uint64_t key0, key1;
-}
-    .init {_state.counter = 0; _state.key0 = 0xDEADBEEFCAFEBABEull; _state.key1 = 0x1234567890ABCDEFull;}
+        uint8_t key_bytes[16];
+        uint8_t counter[16];
+        openclicknp::aes::Key128 round_keys;
+    }
+    .init {
+        for (uint32_t i = 0; i < 16; ++i) {
+            _state.key_bytes[i] = 0;
+            _state.counter[i]   = 0;
+        }
+        openclicknp::aes::aes128_key_expand(_state.round_keys, _state.key_bytes);
+    }
     .handler {
         if (test_input_port(PORT_1)) {
             openclicknp::flit_t f = read_input_port(PORT_1);
-            // Toy XOR-with-counter (placeholder for real AES rounds)
-            f.set(0, f.get(0) ^ (_state.key0 + _state.counter));
-            f.set(1, f.get(1) ^ (_state.key1 + _state.counter));
-            _state.counter++;
-            set_output_port(1, f);
+            uint8_t pt[32], ct[32];
+            f.get_data(pt, 32);
+            openclicknp::aes::aes128_ctr_xcrypt(ct, pt, 32, _state.round_keys, _state.counter);
+            for (int rep = 0; rep < 2; ++rep) {
+                for (int i = 15; i >= 8; --i) {
+                    _state.counter[i] = static_cast<uint8_t>(_state.counter[i] + 1);
+                    if (_state.counter[i] != 0) break;
+                }
+            }
+            openclicknp::flit_t o{};
+            o.set_data(ct, 32);
+            o.set_sop(f.sop()); o.set_eop(f.eop());
+            set_output_port(1, o);
         }
         return PORT_1;
-}
-    .signal (uint cmd, uint p) {if (event.cmd == 1) { _state.key0 = event.lparam[0]; _state.key1 = event.lparam[1]; }}
-
+    }
+    .signal (uint cmd, uint p) {
+        if (event.cmd == 1) {
+            for (int i = 0; i < 8; ++i)
+                _state.key_bytes[i]     = static_cast<uint8_t>(event.lparam[0] >> (i * 8));
+            for (int i = 0; i < 8; ++i)
+                _state.key_bytes[8 + i] = static_cast<uint8_t>(event.lparam[1] >> (i * 8));
+            openclicknp::aes::aes128_key_expand(_state.round_keys, _state.key_bytes);
+        } else if (event.cmd == 2) {
+            for (int i = 0; i < 8; ++i)
+                _state.counter[i]       = static_cast<uint8_t>(event.lparam[0] >> (i * 8));
+            for (int i = 0; i < 8; ++i)
+                _state.counter[8 + i]   = static_cast<uint8_t>(event.lparam[1] >> (i * 8));
+        }
+    }
 }
