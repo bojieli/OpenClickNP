@@ -40,6 +40,12 @@ struct Kernel {
 
     int  channel_depth = 64;        // default depth for outgoing edges
 
+    // Pipeline initiation interval (per-element timing annotation).
+    // 0 = unset → backend uses default of 1 (one new flit/cycle).
+    // 2 = handler runs every 2 cycles, allowing two-cycle critical
+    //     paths to close timing on state-heavy elements.
+    int  pipeline_ii  = 0;
+
     // Filled in by analyses
     int  axilite_base = -1;         // signal RPC AXI-Lite base (if @)
     int  gid          = -1;          // 16-bit signal-dispatch ID

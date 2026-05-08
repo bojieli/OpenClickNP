@@ -169,8 +169,9 @@ void emitKernel(std::ostream& os, const be::Build& build,
         os << "    openclicknp::ClSignal event{}, outevent{};\n";
         os << "    bool _has_signal = false;\n";
     }
+    int ii = (k.pipeline_ii > 0) ? k.pipeline_ii : 1;
     os << "\n    while (true) {\n";
-    os << "#pragma HLS PIPELINE II=1\n";
+    os << "#pragma HLS PIPELINE II=" << ii << "\n";
 
     if (k.has_signal) {
         os << "        // signal poll (host-controlled element)\n";

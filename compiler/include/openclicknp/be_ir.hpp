@@ -27,6 +27,7 @@ struct KernelHls {
     bool        autorun = false;
     bool        has_signal = false;
     int         axilite_base = -1;
+    int         pipeline_ii = 0;  // 0 = backend default (1)
     std::vector<Port> in_ports;
     std::vector<Port> out_ports;
     std::vector<std::string> params;

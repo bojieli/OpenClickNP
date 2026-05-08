@@ -38,6 +38,13 @@ struct ElementDecl {
     std::optional<OpaqueCpp> handler;
     std::optional<OpaqueCpp> signal;
     std::vector<SignalParam> signal_params;   // optional typed param list
+    // Optional `.timing { ii = N; }` block. ii overrides the default
+    // HLS pipeline II (initiation interval) for this element. ii=1 (default)
+    // means one new flit accepted per cycle; ii=2 means one every two
+    // cycles, allowing two-cycle critical paths to close timing on
+    // state-heavy elements that can't fit their handler in a single
+    // cycle at 322 MHz. ii=0 means "leave default".
+    int  pipeline_ii = 0;
     SourceRange src;
 };
 

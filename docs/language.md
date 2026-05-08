@@ -39,6 +39,14 @@ OpenClickNP source files use the `.clnp` extension. A file may contain:
         // Optional. Host-callable RPC.
         outevent.lparam[0] = _state.counter;
     }
+    .timing {
+        // Optional. Override per-element HLS pipeline initiation interval.
+        // Default is ii=1 (one new flit accepted every cycle). Use ii=2
+        // for state-heavy elements whose handler can't fit in a single
+        // 3.106 ns cycle at 322 MHz — typically those that combine an
+        // AXI input read with a multi-step state update.
+        ii = 2;
+    }
 }
 ```
 

@@ -193,6 +193,32 @@ bool Parser::parseElementBody(State& s, ast::ElementDecl& elem) {
             auto blk = parseBraceBlock(s);
             if (!blk) return false;
             elem.signal = std::move(blk);
+        } else if (s.cur.kind == Tok::KwTiming) {
+            // .timing { ii = N; }
+            advance(s);
+            Token lbrace = expect(s, Tok::LBrace, "`{` after .timing");
+            if (lbrace.kind != Tok::LBrace) return false;
+            while (s.cur.kind != Tok::RBrace && s.cur.kind != Tok::Eof) {
+                Token id = expect(s, Tok::Ident, "timing key (e.g. `ii`)");
+                if (id.kind != Tok::Ident) return false;
+                Token eq = expect(s, Tok::Equals, "`=` after timing key");
+                if (eq.kind != Tok::Equals) return false;
+                Token val = expect(s, Tok::Integer, "integer value");
+                if (val.kind != Tok::Integer) return false;
+                if (id.text == "ii") {
+                    try { elem.pipeline_ii = std::stoi(val.text); }
+                    catch (...) { error(val, "invalid integer for ii"); return false; }
+                    if (elem.pipeline_ii < 1 || elem.pipeline_ii > 64) {
+                        error(val, "ii must be in [1, 64]");
+                        return false;
+                    }
+                } else {
+                    error(id, "unknown timing key `" + id.text + "` (only `ii` supported)");
+                    return false;
+                }
+                expect(s, Tok::Semicolon, "`;` after timing entry");
+            }
+            expect(s, Tok::RBrace, "`}` to close .timing block");
         } else {
             error(s.cur, std::string("unexpected token in element body: ") +
                          tokName(s.cur.kind));
