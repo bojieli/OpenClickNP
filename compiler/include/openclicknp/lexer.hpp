@@ -46,6 +46,7 @@ enum class Tok {
     KwHandler,
     KwSignal,
     KwTiming,
+    KwHlsPragma,
     KwRepeat,
     KwBreak,
     KwConstexpr,

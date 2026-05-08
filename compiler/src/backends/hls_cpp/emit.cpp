@@ -172,6 +172,10 @@ void emitKernel(std::ostream& os, const be::Build& build,
     int ii = (k.pipeline_ii > 0) ? k.pipeline_ii : 1;
     os << "\n    while (true) {\n";
     os << "#pragma HLS PIPELINE II=" << ii << "\n";
+    // User-supplied free-form HLS directives (.hls_pragma block).
+    for (const auto& pr : k.hls_pragmas) {
+        os << "#pragma HLS " << pr << "\n";
+    }
 
     if (k.has_signal) {
         os << "        // signal poll (host-controlled element)\n";

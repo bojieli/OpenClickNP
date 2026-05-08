@@ -28,6 +28,7 @@ struct KernelHls {
     bool        has_signal = false;
     int         axilite_base = -1;
     int         pipeline_ii = 0;  // 0 = backend default (1)
+    std::vector<std::string> hls_pragmas;  // free-form HLS directives
     std::vector<Port> in_ports;
     std::vector<Port> out_ports;
     std::vector<std::string> params;

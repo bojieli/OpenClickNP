@@ -46,6 +46,11 @@ struct Kernel {
     //     paths to close timing on state-heavy elements.
     int  pipeline_ii  = 0;
 
+    // Free-form HLS pragma directives (e.g. "ARRAY_PARTITION variable=foo
+    // type=complete dim=1") emitted at the top of the kernel loop. See
+    // ElementDecl::hls_pragmas.
+    std::vector<std::string> hls_pragmas;
+
     // Filled in by analyses
     int  axilite_base = -1;         // signal RPC AXI-Lite base (if @)
     int  gid          = -1;          // 16-bit signal-dispatch ID

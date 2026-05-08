@@ -38,6 +38,7 @@ const char* tokName(Tok t) {
         case Tok::KwHandler:      return ".handler";
         case Tok::KwSignal:       return ".signal";
         case Tok::KwTiming:       return ".timing";
+        case Tok::KwHlsPragma:    return ".hls_pragma";
         case Tok::KwRepeat:       return ".repeat";
         case Tok::KwBreak:        return "BREAK";
         case Tok::KwConstexpr:    return "constexpr";
@@ -152,6 +153,7 @@ Token Lexer::lexDirectiveKeyword(SourceLoc start) {
         {"handler",       Tok::KwHandler},
         {"signal",        Tok::KwSignal},
         {"timing",        Tok::KwTiming},
+        {"hls_pragma",    Tok::KwHlsPragma},
         {"repeat",        Tok::KwRepeat},
     };
     Token t;

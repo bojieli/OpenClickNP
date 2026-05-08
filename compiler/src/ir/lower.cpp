@@ -40,6 +40,7 @@ bool lowerToBackend(const eg::Graph& g,
         bk.signal_cpp  = k.signal_cpp;
         bk.signal_params = k.signal_params;
         bk.pipeline_ii = k.pipeline_ii;
+        bk.hls_pragmas = k.hls_pragmas;
         out.kernels.push_back(std::move(bk));
 
         if (k.host_control) {

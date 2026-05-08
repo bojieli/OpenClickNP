@@ -146,6 +146,7 @@ private:
         if (decl.handler) k.handler_cpp = decl.handler->text;
         if (decl.signal)  k.signal_cpp  = decl.signal->text;
         k.pipeline_ii = decl.pipeline_ii;
+        k.hls_pragmas = decl.hls_pragmas;
         k.src = inst.src;
         out.kernels.push_back(std::move(k));
     }

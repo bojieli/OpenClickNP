@@ -45,6 +45,14 @@ struct ElementDecl {
     // state-heavy elements that can't fit their handler in a single
     // cycle at 322 MHz. ii=0 means "leave default".
     int  pipeline_ii = 0;
+
+    // Optional `.hls_pragma { "DIRECTIVE 1"; "DIRECTIVE 2"; }` block.
+    // Each string becomes one `#pragma HLS <DIRECTIVE>` line emitted at
+    // the top of the generated kernel function, after PIPELINE. Used
+    // for ARRAY_PARTITION, BIND_STORAGE, etc. — pragmas the framework
+    // shouldn't have to know about by name.
+    std::vector<std::string> hls_pragmas;
+
     SourceRange src;
 };
 

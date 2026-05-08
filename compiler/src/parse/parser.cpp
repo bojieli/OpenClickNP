@@ -193,6 +193,18 @@ bool Parser::parseElementBody(State& s, ast::ElementDecl& elem) {
             auto blk = parseBraceBlock(s);
             if (!blk) return false;
             elem.signal = std::move(blk);
+        } else if (s.cur.kind == Tok::KwHlsPragma) {
+            // .hls_pragma { "directive 1"; "directive 2"; ... }
+            advance(s);
+            Token lbrace = expect(s, Tok::LBrace, "`{` after .hls_pragma");
+            if (lbrace.kind != Tok::LBrace) return false;
+            while (s.cur.kind != Tok::RBrace && s.cur.kind != Tok::Eof) {
+                Token str = expect(s, Tok::StringLit, "HLS directive string");
+                if (str.kind != Tok::StringLit) return false;
+                elem.hls_pragmas.push_back(str.text);
+                expect(s, Tok::Semicolon, "`;` after HLS directive");
+            }
+            expect(s, Tok::RBrace, "`}` to close .hls_pragma block");
         } else if (s.cur.kind == Tok::KwTiming) {
             // .timing { ii = N; }
             advance(s);
